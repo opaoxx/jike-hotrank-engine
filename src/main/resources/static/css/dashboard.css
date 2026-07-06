@@ -1,5 +1,5 @@
 /* ================================================================
-   Jike HotRank Engine — Dashboard Styles (Dark Theme)
+   即刻热点榜单引擎 — Dashboard 样式（暗色主题）
    ================================================================ */
 
 :root {
@@ -28,20 +28,21 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', 'PingFang SC', sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
   line-height: 1.6;
   min-height: 100vh;
+  font-size: 20px;
 }
 
-/* ---- Nav Bar ---- */
+/* ---- 导航栏 ---- */
 .navbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 24px;
-  height: 56px;
+  height: 60px;
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border);
   position: sticky;
@@ -49,7 +50,7 @@ body {
   z-index: 100;
 }
 .navbar-brand {
-  font-size: 18px;
+  font-size: 28px;
   font-weight: 700;
   color: var(--accent);
   letter-spacing: -0.5px;
@@ -58,7 +59,7 @@ body {
   display: flex;
   align-items: center;
   gap: 20px;
-  font-size: 13px;
+  font-size: 19px;
   color: var(--text-secondary);
 }
 .sse-indicator {
@@ -67,8 +68,8 @@ body {
   gap: 6px;
 }
 .sse-dot {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: var(--text-muted);
   transition: background var(--transition);
@@ -77,7 +78,7 @@ body {
 .sse-dot.disconnected { background: var(--red); }
 .refresh-timer { font-variant-numeric: tabular-nums; }
 
-/* ---- Tab Bar ---- */
+/* ---- Tab 栏 ---- */
 .tab-bar {
   display: flex;
   gap: 0;
@@ -87,11 +88,11 @@ body {
   overflow-x: auto;
 }
 .tab-btn {
-  padding: 12px 20px;
+  padding: 14px 22px;
   border: none;
   background: none;
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 20px;
   font-weight: 500;
   cursor: pointer;
   border-bottom: 2px solid transparent;
@@ -104,17 +105,17 @@ body {
   border-bottom-color: var(--accent);
 }
 
-/* ---- Main Content ---- */
+/* ---- 主内容区 ---- */
 .main-content {
   padding: 24px;
   max-width: 1400px;
   margin: 0 auto;
 }
 
-/* ---- Stat Cards ---- */
+/* ---- 统计卡片 ---- */
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
   margin-bottom: 24px;
 }
@@ -122,27 +123,25 @@ body {
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 20px;
+  padding: 24px;
 }
 .stat-card .stat-label {
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 19px;
   color: var(--text-muted);
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 .stat-card .stat-value {
-  font-size: 28px;
+  font-size: 44px;
   font-weight: 700;
   color: var(--text-primary);
 }
 .stat-card .stat-sub {
-  font-size: 12px;
+  font-size: 18px;
   color: var(--text-secondary);
   margin-top: 4px;
 }
 
-/* ---- Panels ---- */
+/* ---- 面板 ---- */
 .panel {
   background: var(--bg-surface);
   border: 1px solid var(--border);
@@ -152,7 +151,7 @@ body {
 }
 .panel-header {
   padding: 16px 20px;
-  font-size: 15px;
+  font-size: 21px;
   font-weight: 600;
   border-bottom: 1px solid var(--border);
   display: flex;
@@ -162,7 +161,7 @@ body {
 .panel-body { padding: 20px; }
 .panel-body.no-padding { padding: 0; }
 
-/* ---- Charts Grid ---- */
+/* ---- 图表网格 ---- */
 .charts-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -174,36 +173,34 @@ body {
 .chart-container {
   position: relative;
   width: 100%;
-  height: 300px;
+  height: 320px;
 }
 .chart-container canvas { width: 100% !important; }
 
-/* ---- Tables ---- */
+/* ---- 表格 ---- */
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: 20px;
 }
 .data-table thead { position: sticky; top: 0; z-index: 1; }
 .data-table th {
   text-align: left;
-  padding: 12px 16px;
+  padding: 14px 16px;
   background: var(--bg-elevated);
   color: var(--text-secondary);
   font-weight: 600;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 19px;
   border-bottom: 1px solid var(--border);
 }
 .data-table td {
-  padding: 10px 16px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--border);
   color: var(--text-primary);
 }
 .data-table tbody tr { cursor: pointer; transition: background var(--transition); }
 .data-table tbody tr:hover { background: var(--bg-surface-hover); }
-.data-table .rank-col { width: 60px; text-align: center; }
+.data-table .rank-col { width: 64px; text-align: center; }
 .data-table .score-col { font-variant-numeric: tabular-nums; text-align: right; }
 .data-table .count-col { text-align: right; }
 
@@ -211,10 +208,10 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  font-size: 13px;
+  font-size: 19px;
   font-weight: 700;
 }
 .rank-1 { background: #f59e0b; color: #000; }
@@ -227,16 +224,16 @@ body {
 
 .status-badge {
   display: inline-block;
-  padding: 2px 10px;
+  padding: 3px 12px;
   border-radius: 12px;
-  font-size: 12px;
+  font-size: 18px;
   font-weight: 600;
 }
 .status-normal { background: var(--green-bg); color: var(--green); }
 .status-blocked { background: var(--red-bg); color: var(--red); }
 .status-review { background: var(--yellow-bg); color: var(--yellow); }
 
-/* ---- Modal ---- */
+/* ---- 弹窗 ---- */
 .modal-overlay {
   display: none;
   position: fixed;
@@ -253,7 +250,7 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   width: 90%;
-  max-width: 640px;
+  max-width: 680px;
   max-height: 85vh;
   overflow-y: auto;
   box-shadow: var(--shadow);
@@ -265,12 +262,12 @@ body {
   padding: 20px 24px;
   border-bottom: 1px solid var(--border);
 }
-.modal-header h2 { font-size: 18px; }
+.modal-header h2 { font-size: 24px; }
 .modal-close {
   background: none;
   border: none;
   color: var(--text-secondary);
-  font-size: 24px;
+  font-size: 32px;
   cursor: pointer;
   padding: 4px 8px;
   border-radius: var(--radius-sm);
@@ -279,13 +276,11 @@ body {
 .modal-body { padding: 24px; }
 .modal-body .field { margin-bottom: 16px; }
 .modal-body .field-label {
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 18px;
   color: var(--text-muted);
   margin-bottom: 4px;
 }
-.modal-body .field-value { font-size: 15px; }
+.modal-body .field-value { font-size: 21px; }
 .modal-footer {
   display: flex;
   gap: 12px;
@@ -294,15 +289,15 @@ body {
   justify-content: flex-end;
 }
 
-/* ---- Buttons ---- */
+/* ---- 按钮 ---- */
 .btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 18px;
+  padding: 10px 22px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  font-size: 14px;
+  font-size: 20px;
   font-weight: 500;
   cursor: pointer;
   transition: all var(--transition);
@@ -314,29 +309,27 @@ body {
 .btn-primary:hover { background: var(--accent-hover); }
 .btn-danger { background: var(--red); border-color: var(--red); color: #fff; }
 .btn-danger:hover { background: #dc2626; }
-.btn-sm { padding: 4px 12px; font-size: 13px; }
+.btn-sm { padding: 5px 14px; font-size: 19px; }
 
-/* ---- Forms ---- */
+/* ---- 表单 ---- */
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 12px;
   align-items: end;
 }
 .form-group { display: flex; flex-direction: column; gap: 4px; }
 .form-group label {
-  font-size: 12px;
+  font-size: 18px;
   color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 input, select {
-  padding: 8px 12px;
+  padding: 10px 14px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg-primary);
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: 20px;
   transition: border-color var(--transition);
 }
 input:focus, select:focus {
@@ -348,7 +341,7 @@ select { cursor: pointer; }
 /* ---- Toast ---- */
 .toast-container {
   position: fixed;
-  top: 72px;
+  top: 76px;
   right: 24px;
   z-index: 300;
   display: flex;
@@ -356,13 +349,13 @@ select { cursor: pointer; }
   gap: 8px;
 }
 .toast {
-  padding: 12px 20px;
+  padding: 14px 22px;
   border-radius: var(--radius);
-  font-size: 14px;
+  font-size: 20px;
   font-weight: 500;
   box-shadow: var(--shadow);
   animation: slideIn 0.3s ease;
-  max-width: 400px;
+  max-width: 420px;
 }
 .toast-success { background: #065f46; color: #d1fae5; border: 1px solid #059669; }
 .toast-error { background: #7f1d1d; color: #fecaca; border: 1px solid #dc2626; }
@@ -372,19 +365,21 @@ select { cursor: pointer; }
   to { transform: translateX(0); opacity: 1; }
 }
 
-/* ---- Empty / Loading ---- */
+/* ---- 空状态 / 加载 ---- */
 .empty-state {
   text-align: center;
   padding: 48px 24px;
   color: var(--text-muted);
+  font-size: 20px;
 }
-.empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-state .empty-icon { font-size: 56px; margin-bottom: 12px; }
 .loading {
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 48px;
   color: var(--text-muted);
+  font-size: 20px;
 }
 .spinner {
   width: 24px;
@@ -397,7 +392,7 @@ select { cursor: pointer; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ---- Collapsible ---- */
+/* ---- 折叠面板 ---- */
 .collapsible-toggle {
   cursor: pointer;
   user-select: none;
@@ -406,12 +401,14 @@ select { cursor: pointer; }
 .collapsible-content { display: none; }
 .collapsible-content.open { display: block; }
 
-/* ---- Responsive ---- */
+/* ---- 响应式 ---- */
 @media (max-width: 768px) {
   .navbar { padding: 0 16px; }
   .tab-bar { padding: 0 12px; }
-  .tab-btn { padding: 10px 14px; font-size: 13px; }
+  .tab-btn { padding: 12px 16px; font-size: 19px; }
   .main-content { padding: 16px; }
   .stat-grid { grid-template-columns: repeat(2, 1fr); }
   .form-grid { grid-template-columns: 1fr 1fr; }
+  .charts-grid { grid-template-columns: 1fr; }
+  .chart-container { height: 260px; }
 }

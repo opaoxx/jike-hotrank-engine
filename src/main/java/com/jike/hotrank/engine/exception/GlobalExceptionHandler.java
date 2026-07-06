@@ -7,6 +7,9 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @Slf4j
 @RestControllerAdvice
@@ -42,6 +45,24 @@ public class GlobalExceptionHandler {
         log.warn("Request parameter type mismatch: name={}, value={}, requiredType={}",
             e.getName(), e.getValue(), typeName);
         return ApiResponse.error(400, message);
+    }
+
+    @ExceptionHandler(NoHandlerFoundException.class)
+    public ApiResponse<Void> handleNoHandlerFound(NoHandlerFoundException e) {
+        log.warn("No handler found: {} {}", e.getHttpMethod(), e.getRequestURL());
+        return ApiResponse.error(404, "接口不存在：" + e.getHttpMethod() + " " + e.getRequestURL());
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ApiResponse<Void> handleNoResourceFound(NoResourceFoundException e) {
+        log.warn("No resource found: {}", e.getResourcePath());
+        return ApiResponse.error(404, "资源不存在：" + e.getResourcePath());
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ApiResponse<Void> handleMethodNotSupported(HttpRequestMethodNotSupportedException e) {
+        log.warn("Method not supported: {} {}", e.getMethod(), e.getMessage());
+        return ApiResponse.error(405, "不支持的请求方法：" + e.getMethod());
     }
 
     @ExceptionHandler(RuntimeException.class)

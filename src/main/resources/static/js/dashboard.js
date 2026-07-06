@@ -1,5 +1,5 @@
 /* ================================================================
-   Jike HotRank Engine — Dashboard UI Controller
+   即刻热点榜单引擎 — Dashboard UI 控制器
    ================================================================ */
 
 const state = {
@@ -12,7 +12,7 @@ const state = {
   circleList: []
 };
 
-/* ---- Init ---- */
+/* ---- 初始化 ---- */
 document.addEventListener('DOMContentLoaded', () => {
   bindTabs();
   bindModal();
@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderTab('overview');
 });
 
-/* ---- Tab Switching ---- */
+/* ---- Tab 切换 ---- */
 function bindTabs() {
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -38,20 +38,20 @@ function bindTabs() {
 function renderTab(tab) {
   destroyCharts();
   const content = document.getElementById('main-content');
-  content.innerHTML = '<div class="loading"><div class="spinner"></div> Loading...</div>';
+  content.innerHTML = '<div class="loading"><div class="spinner"></div> 加载中…</div>';
 
   const renderers = {
     overview: renderOverview,
-    global: () => renderRankingTab('global', 'Global Hot Ranking', 50),
-    circle: renderCircleTab,
-    newcomer: () => renderRankingTab('newcomer', 'Newcomer Ranking', 10),
-    surging: () => renderRankingTab('surging', 'Surging Ranking', 10)
+    global:   () => renderRankingTab('global',   '全站热榜', 50),
+    circle:   renderCircleTab,
+    newcomer: () => renderRankingTab('newcomer', '新星榜',   10),
+    surging:  () => renderRankingTab('surging',  '飙升榜',   10)
   };
 
   (renderers[tab] || renderers.overview)();
 }
 
-/* ---- Overview Tab ---- */
+/* ---- 总览 Tab ---- */
 async function renderOverview() {
   const content = document.getElementById('main-content');
   try {
@@ -64,36 +64,36 @@ async function renderOverview() {
     content.innerHTML = `
       <div class="stat-grid">
         <div class="stat-card">
-          <div class="stat-label">Total Topics</div>
+          <div class="stat-label">话题总数</div>
           <div class="stat-value">${hd.topicCount || 0}</div>
-          <div class="stat-sub">Max: ${(hd.maxScore || 0).toFixed(1)}</div>
+          <div class="stat-sub">最高热度：${(hd.maxScore || 0).toFixed(1)}</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Interactions (${intStats.hours || 24}h)</div>
+          <div class="stat-label">互动次数（${intStats.hours || 24}h）</div>
           <div class="stat-value">${(intStats.total || 0).toLocaleString()}</div>
           <div class="stat-sub">${(intStats.periodStart || '').slice(0,16)} ~ ${(intStats.periodEnd || '').slice(11,16)}</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Avg Score</div>
+          <div class="stat-label">平均热度</div>
           <div class="stat-value">${(hd.avgScore || 0).toFixed(1)}</div>
-          <div class="stat-sub">Median: ${(hd.medianScore || 0).toFixed(1)}</div>
+          <div class="stat-sub">中位数：${(hd.medianScore || 0).toFixed(1)}</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Cache Hit Rate</div>
+          <div class="stat-label">缓存命中率</div>
           <div class="stat-value">${((cs.hitRate || 0) * 100).toFixed(1)}%</div>
-          <div class="stat-sub">Hits: ${cs.hits || 0} / Misses: ${cs.misses || 0}</div>
+          <div class="stat-sub">命中 ${cs.hits || 0} / 未命中 ${cs.misses || 0}</div>
         </div>
       </div>
 
       <div class="charts-grid">
         <div class="panel">
-          <div class="panel-header">Heat Distribution</div>
+          <div class="panel-header">热度分布</div>
           <div class="panel-body">
             <div class="chart-container"><canvas id="chart-heat"></canvas></div>
           </div>
         </div>
         <div class="panel">
-          <div class="panel-header">Interaction Breakdown</div>
+          <div class="panel-header">互动类型分布</div>
           <div class="panel-body">
             <div class="chart-container"><canvas id="chart-interaction"></canvas></div>
           </div>
@@ -101,7 +101,7 @@ async function renderOverview() {
       </div>
 
       <div class="panel">
-        <div class="panel-header">Circle Activity</div>
+        <div class="panel-header">圈子活跃度</div>
         <div class="panel-body no-padding" id="circle-activity-table"></div>
       </div>
     `;
@@ -110,7 +110,7 @@ async function renderOverview() {
     renderInteractionChart(intStats);
     renderCircleActivityTable(ca);
   } catch (e) {
-    content.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠</div>Failed to load overview: ${esc(e.message)}</div>`;
+    content.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠</div>加载总览失败：${esc(e.message)}</div>`;
   }
 }
 
@@ -122,7 +122,7 @@ function renderHeatChart(hd) {
     data: {
       labels: ranges,
       datasets: [{
-        label: 'Topics',
+        label: '话题数',
         data: counts,
         backgroundColor: ['#1e40af','#2563eb','#3b82f6','#60a5fa','#93c5fd'],
         borderRadius: 4
@@ -133,8 +133,8 @@ function renderHeatChart(hd) {
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        y: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } },
-        x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+        y: { beginAtZero: true, ticks: { color: '#94a3b8', font: { size: 18 } }, grid: { color: '#1e293b' } },
+        x: { ticks: { color: '#94a3b8', font: { size: 18 } }, grid: { display: false } }
       }
     }
   });
@@ -159,7 +159,7 @@ function renderInteractionChart(intStats) {
       plugins: {
         legend: {
           position: 'bottom',
-          labels: { color: '#94a3b8', padding: 16, usePointStyle: true }
+          labels: { color: '#94a3b8', padding: 16, usePointStyle: true, font: { size: 19 } }
         }
       }
     }
@@ -169,10 +169,9 @@ function renderInteractionChart(intStats) {
 function renderCircleActivityTable(ca) {
   const items = ca.items || [];
   if (!items.length) {
-    document.getElementById('circle-activity-table').innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div>No circle data</div>';
+    document.getElementById('circle-activity-table').innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div>暂无圈子数据</div>';
     return;
   }
-  // Cache circle list for the Circle tab dropdown
   state.circleList = items;
   const rows = items.map((c, i) => `
     <tr>
@@ -185,12 +184,12 @@ function renderCircleActivityTable(ca) {
   `).join('');
   document.getElementById('circle-activity-table').innerHTML = `
     <table class="data-table">
-      <thead><tr><th class="rank-col">#</th><th>Circle</th><th class="count-col">Topics</th><th class="score-col">Avg Score</th><th class="count-col">Interactions</th></tr></thead>
+      <thead><tr><th class="rank-col">#</th><th>圈子</th><th class="count-col">话题数</th><th class="score-col">平均热度</th><th class="count-col">互动数</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
 }
 
-/* ---- Ranking Tab (shared for global/newcomer/surging) ---- */
+/* ---- 榜单 Tab（全站 / 新星 / 飙升 共用） ---- */
 async function renderRankingTab(type, title, defaultLimit) {
   const content = document.getElementById('main-content');
   try {
@@ -198,20 +197,19 @@ async function renderRankingTab(type, title, defaultLimit) {
     const items = data.items || [];
     content.innerHTML = `
       <div class="panel">
-        <div class="panel-header">${title} <span style="font-weight:400;font-size:13px;color:var(--text-muted)">${items.length} topics · updated ${(data.updateTime || '').slice(11,19)}</span></div>
+        <div class="panel-header">${title} <span style="font-weight:400;font-size:19px;color:var(--text-muted)">${items.length} 个话题 · 更新于 ${(data.updateTime || '').slice(11,19)}</span></div>
         <div class="panel-body no-padding" id="ranking-table"></div>
       </div>
     `;
     renderRankingTable(items, 'ranking-table');
   } catch (e) {
-    content.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠</div>Failed to load ranking: ${esc(e.message)}</div>`;
+    content.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠</div>加载榜单失败：${esc(e.message)}</div>`;
   }
 }
 
-/* ---- Circle Tab ---- */
+/* ---- 圈子 Tab ---- */
 async function renderCircleTab() {
   const content = document.getElementById('main-content');
-  // Ensure we have circle list
   if (!state.circleList.length) {
     try {
       const ca = await fetchAnalysis('circle-activity');
@@ -223,11 +221,11 @@ async function renderCircleTab() {
   content.innerHTML = `
     <div class="panel">
       <div class="panel-header">
-        Circle Hot Ranking
-        <select id="circle-select" style="width:200px">${options}</select>
+        圈子热榜
+        <select id="circle-select" style="width:240px;font-size:20px">${options}</select>
       </div>
       <div class="panel-body no-padding" id="ranking-table">
-        <div class="loading"><div class="spinner"></div> Loading...</div>
+        <div class="loading"><div class="spinner"></div> 加载中…</div>
       </div>
     </div>
   `;
@@ -246,18 +244,18 @@ async function loadCircleRanking(circleId) {
     const items = data.items || [];
     document.getElementById('ranking-table').innerHTML = items.length
       ? renderRankingTableHtml(items)
-      : '<div class="empty-state"><div class="empty-icon">📭</div>No topics in this circle</div>';
+      : '<div class="empty-state"><div class="empty-icon">📭</div>该圈子暂无话题</div>';
     bindRankingRowClicks();
   } catch (e) {
     document.getElementById('ranking-table').innerHTML = `<div class="empty-state"><div class="empty-icon">⚠</div>${esc(e.message)}</div>`;
   }
 }
 
-/* ---- Ranking Table Rendering ---- */
+/* ---- 榜单表格渲染 ---- */
 function renderRankingTable(items, containerId) {
   const el = document.getElementById(containerId);
   if (!items.length) {
-    el.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div>No ranking data</div>';
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div>暂无排行数据</div>';
     return;
   }
   el.innerHTML = renderRankingTableHtml(items);
@@ -276,7 +274,7 @@ function renderRankingTableHtml(items) {
   `).join('');
   return `
     <table class="data-table">
-      <thead><tr><th class="rank-col">#</th><th>Title</th><th>Circle</th><th class="score-col">Score</th><th class="count-col">Interactions</th></tr></thead>
+      <thead><tr><th class="rank-col">#</th><th>话题</th><th>圈子</th><th class="score-col">热度</th><th class="count-col">互动数</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
 }
@@ -284,13 +282,12 @@ function renderRankingTableHtml(items) {
 function bindRankingRowClicks() {
   document.querySelectorAll('.ranking-row').forEach(row => {
     row.addEventListener('click', () => {
-      const topicId = parseInt(row.dataset.topicId);
-      openTopicModal(topicId);
+      openTopicModal(parseInt(row.dataset.topicId));
     });
   });
 }
 
-/* ---- Topic Modal ---- */
+/* ---- 话题详情弹窗 ---- */
 function bindModal() {
   document.getElementById('modal-close').addEventListener('click', closeTopicModal);
   document.getElementById('modal-overlay').addEventListener('click', (e) => {
@@ -302,37 +299,36 @@ async function openTopicModal(topicId) {
   const overlay = document.getElementById('modal-overlay');
   const body = document.getElementById('modal-body');
   overlay.classList.add('active');
-  body.innerHTML = '<div class="loading"><div class="spinner"></div> Loading topic...</div>';
+  body.innerHTML = '<div class="loading"><div class="spinner"></div> 加载话题中…</div>';
   document.getElementById('modal-footer').innerHTML = '';
 
   try {
     const topic = await fetchTopicDetail(topicId);
-    const statusLabels = { 0: 'Blocked', 1: 'Normal', 2: 'Under Review' };
+    const statusLabels = { 0: '已屏蔽', 1: '正常', 2: '待审核' };
     const statusClasses = { 0: 'status-blocked', 1: 'status-normal', 2: 'status-review' };
-    const statusLabel = statusLabels[topic.status] || 'Unknown';
+    const statusLabel = statusLabels[topic.status] || '未知';
     const statusClass = statusClasses[topic.status] || '';
 
     body.innerHTML = `
-      <div class="field"><div class="field-label">Title</div><div class="field-value" style="font-size:18px;font-weight:600">${esc(topic.title)}</div></div>
-      <div class="field"><div class="field-label">Status</div><div class="field-value"><span class="status-badge ${statusClass}">${statusLabel}</span></div></div>
-      <div class="field"><div class="field-label">Content</div><div class="field-value" style="color:var(--text-secondary)">${esc(topic.content || '(no content)')}</div></div>
+      <div class="field"><div class="field-label">标题</div><div class="field-value" style="font-size:24px;font-weight:600">${esc(topic.title)}</div></div>
+      <div class="field"><div class="field-label">状态</div><div class="field-value"><span class="status-badge ${statusClass}">${statusLabel}</span></div></div>
+      <div class="field"><div class="field-label">内容</div><div class="field-value" style="color:var(--text-secondary)">${esc(topic.content || '（无内容）')}</div></div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:16px">
-        <div class="field"><div class="field-label">Circle ID</div><div class="field-value">${topic.circleId}</div></div>
-        <div class="field"><div class="field-label">Author ID</div><div class="field-value">${topic.authorId}</div></div>
-        <div class="field"><div class="field-label">Publish Time</div><div class="field-value">${(topic.publishTime || '').slice(0,19)}</div></div>
-        <div class="field"><div class="field-label">Current Score</div><div class="field-value" style="font-weight:600;color:var(--green)">${(topic.currentScore || 0).toFixed(4)}</div></div>
-        <div class="field"><div class="field-label">Interactions</div><div class="field-value">${(topic.interactionCount || 0).toLocaleString()}</div></div>
-        <div class="field"><div class="field-label">Topic ID</div><div class="field-value">${topic.id}</div></div>
+        <div class="field"><div class="field-label">圈子 <span translate="no">ID</span></div><div class="field-value">${topic.circleId}</div></div>
+        <div class="field"><div class="field-label">作者 <span translate="no">ID</span></div><div class="field-value">${topic.authorId}</div></div>
+        <div class="field"><div class="field-label">发布时间</div><div class="field-value">${(topic.publishTime || '').slice(0,19)}</div></div>
+        <div class="field"><div class="field-label">当前热度</div><div class="field-value" style="font-weight:600;color:var(--green)">${(topic.currentScore || 0).toFixed(4)}</div></div>
+        <div class="field"><div class="field-label">互动数</div><div class="field-value">${(topic.interactionCount || 0).toLocaleString()}</div></div>
+        <div class="field"><div class="field-label">话题 <span translate="no">ID</span></div><div class="field-value">${topic.id}</div></div>
       </div>
     `;
 
     const footer = document.getElementById('modal-footer');
     const btn = topic.status === 0
-      ? `<button class="btn btn-primary" onclick="unblockTopicAction(${topic.id})">✓ Unblock Topic</button>`
-      : `<button class="btn btn-danger" onclick="blockTopicAction(${topic.id})">🚫 Block Topic</button>`;
-    footer.innerHTML = btn + `<button class="btn" onclick="closeTopicModal()">Close</button>`;
+      ? `<button class="btn btn-primary" onclick="unblockTopicAction(${topic.id})">✓ 取消屏蔽</button>`
+      : `<button class="btn btn-danger" onclick="blockTopicAction(${topic.id})">🚫 屏蔽话题</button>`;
+    footer.innerHTML = btn + `<button class="btn" onclick="closeTopicModal()">关闭</button>`;
 
-    // Store current topic for action callbacks
     window._modalTopic = topic;
   } catch (e) {
     body.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠</div>${esc(e.message)}</div>`;
@@ -346,35 +342,35 @@ function closeTopicModal() {
 async function blockTopicAction(topicId) {
   try {
     await blockTopic(topicId);
-    showToast('Topic blocked successfully', 'success');
+    showToast('话题已屏蔽', 'success');
     closeTopicModal();
     resetRefreshTimer();
     renderTab(state.activeTab);
   } catch (e) {
-    showToast(`Block failed: ${e.message}`, 'error');
+    showToast(`屏蔽失败：${e.message}`, 'error');
   }
 }
 
 async function unblockTopicAction(topicId) {
   try {
     await unblockTopic(topicId);
-    showToast('Topic unblocked successfully', 'success');
+    showToast('话题已取消屏蔽', 'success');
     closeTopicModal();
     resetRefreshTimer();
     renderTab(state.activeTab);
   } catch (e) {
-    showToast(`Unblock failed: ${e.message}`, 'error');
+    showToast(`取消屏蔽失败：${e.message}`, 'error');
   }
 }
 
-/* ---- Interaction Simulator ---- */
+/* ---- 互动模拟器 ---- */
 function bindInteractionForm() {
   document.getElementById('interaction-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('interaction-submit');
     const resultEl = document.getElementById('interaction-result');
     btn.disabled = true;
-    btn.textContent = 'Submitting...';
+    btn.textContent = '提交中…';
     resultEl.innerHTML = '';
 
     const body = {
@@ -387,8 +383,8 @@ function bindInteractionForm() {
 
     try {
       const result = await submitInteraction(body);
-      resultEl.innerHTML = `<div style="color:var(--green);margin-top:8px">✓ Interaction recorded! ID=${esc(result.id)}, weight=${esc(result.weightMultiplier)}</div>`;
-      showToast('Interaction recorded', 'success');
+      resultEl.innerHTML = `<div style="color:var(--green);margin-top:8px">✓ 互动已记录！<span translate="no">ID</span>=${esc(result.id)}，权重=${esc(result.weightMultiplier)}</div>`;
+      showToast('互动已记录', 'success');
       resetRefreshTimer();
       renderTab(state.activeTab);
     } catch (err) {
@@ -396,12 +392,12 @@ function bindInteractionForm() {
       showToast(err.message, 'error');
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Submit Interaction';
+      btn.textContent = '提交互动';
     }
   });
 }
 
-/* ---- SSE ---- */
+/* ---- SSE 实时推送 ---- */
 function startSSE() {
   if (state.sseCleanup) state.sseCleanup();
 
@@ -409,23 +405,21 @@ function startSSE() {
     onConnected: (data) => {
       state.sseConnected = true;
       updateSSEIndicator(true);
-      if (data.subscriberCount !== undefined) {
-        document.getElementById('sse-text').textContent = `SSE: ● connected (${data.subscriberCount})`;
-      }
+      const sub = data.subscriberCount !== undefined ? `（${data.subscriberCount} 个订阅者）` : '';
+      document.getElementById('sse-text').textContent = `实时推送：● 已连接 ${sub}`;
     },
     onRankingUpdated: (data) => {
-      showToast(`Ranking updated: ${data.updatedTopicCount} topics recalculated`, 'info');
+      showToast(`榜单已更新：${data.updatedTopicCount} 个话题已重新计算`, 'info');
       resetRefreshTimer();
       renderTab(state.activeTab);
     },
     onTopNEntered: (data) => {
-      showToast(`🏆 Top ${data.threshold} entered: "${data.title}" (${data.score})`, 'info');
+      showToast(`🏆 新晋前 ${data.threshold} 名：「${data.title}」(${data.score})`, 'info');
     },
     onError: () => {
       state.sseConnected = false;
       updateSSEIndicator(false);
-      document.getElementById('sse-text').textContent = 'SSE: ● disconnected';
-      // Auto-reconnect after delay
+      document.getElementById('sse-text').textContent = '实时推送：● 已断开';
       setTimeout(startSSE, 5000);
     }
   });
@@ -436,7 +430,7 @@ function updateSSEIndicator(connected) {
   dot.className = 'sse-dot ' + (connected ? 'connected' : 'disconnected');
 }
 
-/* ---- Refresh Timer ---- */
+/* ---- 自动刷新 ---- */
 function startRefreshTimer() {
   state.refreshTimer = setInterval(() => {
     if (state.refreshSeconds <= 1) {
@@ -455,16 +449,16 @@ function resetRefreshTimer() {
 }
 
 function updateTimerDisplay() {
-  document.getElementById('refresh-timer').textContent = `Refresh: ${state.refreshSeconds}s`;
+  document.getElementById('refresh-timer').textContent = `刷新：${state.refreshSeconds}s`;
 }
 
-/* ---- Charts ---- */
+/* ---- 图表 ---- */
 function destroyCharts() {
   Object.values(state.charts).forEach(c => c.destroy());
   state.charts = {};
 }
 
-/* ---- Toast ---- */
+/* ---- Toast 通知 ---- */
 function showToast(message, type = 'info') {
   const container = document.getElementById('toast-container');
   const toast = document.createElement('div');
@@ -474,7 +468,7 @@ function showToast(message, type = 'info') {
   setTimeout(() => { toast.remove(); }, 4000);
 }
 
-/* ---- Utilities ---- */
+/* ---- 工具函数 ---- */
 function esc(str) {
   if (!str) return '';
   const div = document.createElement('div');
