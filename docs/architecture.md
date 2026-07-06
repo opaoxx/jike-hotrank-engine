@@ -1,303 +1,113 @@
-# 即刻App内容社区实时热点榜单引擎 - 系统架构文档
+# 系统架构文档
 
-## 1. 项目概述
+## 项目目标
 
-### 1.1 项目背景
-即刻App热点榜单引擎是一个模拟兴趣社区平台（即刻/小红书）的热点榜单核心系统。用户每次点赞、评论、转发都会实时影响话题热度，系统需要在分钟级内将热度变化反映到榜单上。
+即刻 App 内容社区实时热点榜单引擎用于模拟内容社区的实时榜单核心链路：用户产生互动事件，系统通过反作弊校验、事件入库、热度聚合、缓存和推送，把话题热度变化反映到多维榜单中。
 
-### 1.2 核心功能
-- 实时互动事件采集
-- 热度聚合计算（5分钟定时任务）
-- 多维度榜单查询（全站/圈子/新星/飙升/个性化）
-- 防刷热度机制
-- JVM本地缓存
-- 话题屏蔽
-- 上榜事件触发
+## 架构分层
 
-### 1.3 技术栈
-| 组件 | 技术选型 |
-|------|----------|
-| 框架 | Spring Boot 4.0.6 |
-| ORM | MyBatis 4.0.1 |
-| 数据库 | MySQL 8.0 |
-| 缓存 | JVM本地缓存（ConcurrentHashMap） |
-| 定时任务 | Spring @Scheduled |
-| 工具 | Lombok |
-
----
-
-## 2. 系统架构
-
-### 2.1 整体架构图
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         客户端 (Apifox/App)                       │
-└───────────────────────────────┬─────────────────────────────────┘
-                                │ HTTP
-                                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Spring Boot Application                       │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │                    Controller 层                          │   │
-│  │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐     │   │
-│  │  │ Interaction  │ │   Ranking    │ │    Topic     │     │   │
-│  │  │  Controller  │ │  Controller  │ │  Controller  │     │   │
-│  │  └──────┬───────┘ └──────┬───────┘ └──────┬───────┘     │   │
-│  └─────────┼────────────────┼────────────────┼─────────────┘   │
-│            │                │                │                  │
-│  ┌─────────┼────────────────┼────────────────┼─────────────┐   │
-│  │         ▼        Service 层              ▼               │   │
-│  │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐     │   │
-│  │  │ Interaction  │ │   Ranking    │ │    Topic     │     │   │
-│  │  │   Service    │ │   Service    │ │   Service    │     │   │
-│  │  └──────┬───────┘ └──────┬───────┘ └──────┬───────┘     │   │
-│  │         │                │                │              │   │
-│  │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐     │   │
-│  │  │  AntiSpam    │ │    User      │ │    User      │     │   │
-│  │  │   Service    │ │  Behavior    │ │  Preference  │     │   │
-│  │  └──────┬───────┘ └──────┬───────┘ └──────┬───────┘     │   │
-│  └─────────┼────────────────┼────────────────┼─────────────┘   │
-│            │                │                │                  │
-│  ┌─────────┼────────────────┼────────────────┼─────────────┐   │
-│  │         ▼        Mapper 层               ▼               │   │
-│  │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐     │   │
-│  │  │ Interaction  │ │    Topic     │ │   Circle     │     │   │
-│  │  │   Mapper     │ │   Mapper     │ │   Mapper     │     │   │
-│  │  └──────┬───────┘ └──────┬───────┘ └──────┬───────┘     │   │
-│  └─────────┼────────────────┼────────────────┼─────────────┘   │
-│            │                │                │                  │
-│  ┌─────────┼────────────────┼────────────────┼─────────────┐   │
-│  │         ▼        定时任务层               ▼               │   │
-│  │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐     │   │
-│  │  │    Heat      │ │   Snapshot   │ │   Ranking    │     │   │
-│  │  │ Aggregation  │ │    Task      │ │    Cache     │     │   │
-│  │  │    Task      │ │              │ │   Manager    │     │   │
-│  │  └──────┬───────┘ └──────┬───────┘ └──────┬───────┘     │   │
-│  └─────────┼────────────────┼────────────────┼─────────────┘   │
-└────────────┼────────────────┼────────────────┼─────────────────┘
-             │                │                │
-             ▼                ▼                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                         MySQL 8.0 数据库                         │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐           │
-│  │  topic   │ │interaction│ │  circle  │ │snapshot  │           │
-│  │          │ │  _event   │ │          │ │          │           │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘           │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    Client["客户端 / Apifox / 压测工具"] --> Controller["Controller 层"]
+    Controller --> WriteService["InteractionWriteService"]
+    Controller --> RankingService["RankingService"]
+    Controller --> TopicService["TopicService"]
+    WriteService --> AntiSpam["AntiSpamService"]
+    WriteService --> EventService["InteractionEventService"]
+    WriteService --> BehaviorService["UserBehaviorService"]
+    WriteService --> PreferenceService["UserCirclePreferenceService"]
+    RankingService --> Cache["RankingCacheManager"]
+    RankingService --> EventService
+    RankingService --> TopicService
+    HeatTask["HeatAggregationTask"] --> Lock["TaskLockService"]
+    SnapshotTask["SnapshotTask"] --> Lock
+    HeatTask --> EventService
+    HeatTask --> Cache
+    HeatTask --> Notify["RankingNotificationService"]
+    EventService --> Mapper["MyBatis Mapper"]
+    TopicService --> Mapper
+    PreferenceService --> Mapper
+    BehaviorService --> Mapper
+    Mapper --> MySQL["MySQL"]
 ```
 
-### 2.2 数据流向
+## 核心链路
 
-```
-用户互动 → Controller → AntiSpam校验 → 记录事件 → 更新用户偏好
-                                    ↓
-                            interaction_event表
-                                    ↓
-                        HeatAggregationTask (每5分钟)
-                                    ↓
-                        计算时间衰减热度分
-                                    ↓
-                        更新 topic.current_score
-                                    ↓
-                        榜单查询 ← RankingCacheManager (5秒TTL)
-```
+### 互动写入
 
----
+1. `InteractionController` 校验必要参数和互动类型。
+2. `InteractionWriteService` 在事务内读取话题、执行反作弊、记录行为审计、写入互动事件。
+3. 频率超限会拒绝写入 `interaction_event`，但会写入无效行为记录。
+4. 设备指纹风险不会直接拒绝，而是通过 `weight_multiplier` 对热度贡献降权。
+5. 写入成功后更新用户圈子偏好，并清理该用户的个性化榜单缓存。
 
-## 3. 核心算法
+### 热度聚合
 
-### 3.1 热度算法（时间衰减模型）
+1. `HeatAggregationTask` 由定时任务触发。
+2. `TaskLockService` 使用 MySQL named lock 防止多实例重复执行。
+3. 聚合全量互动事件，按互动权重和 `weight_multiplier` 得到加权互动分。
+4. `HeatScoreCalculator` 结合发布时间做时间衰减。
+5. 批量更新 `topic.current_score` 和 `topic.interaction_count`。
+6. 清理榜单缓存，并通过 `RankingNotificationService` 推送榜单变化事件。
 
-**公式：**
-```
-score = 总互动分 / (发布小时数 + 2)^1.8
-```
+### 榜单查询
 
-**参数说明：**
-- `总互动分` = 点赞数×1 + 收藏数×2 + 转发数×3 + 评论数×5
-- `发布小时数` = 当前时间 - 发布时间（小时）
-- `1.8` = 时间衰减指数（介于线性1.0和平方2.0之间）
-- `+2` = 时间偏移量（防止新话题分数过高）
+`RankingController` 通过 `RankingCacheManager` 缓存榜单响应，缓存 key 会先归一化 `limit`，避免异常参数制造大量等价缓存项。
 
-**互动权重：**
-| 互动类型 | 权重 | 说明 |
-|----------|------|------|
-| 评论 | 5 | 最高价值互动 |
-| 转发 | 3 | 传播价值 |
-| 收藏 | 2 | 收藏价值 |
-| 点赞 | 1 | 基础互动 |
+支持的榜单：
 
-### 3.2 个性化榜单算法
+- 全站热榜：按 `topic.status + current_score` 排序。
+- 圈子热榜：按 `circle_id + status + current_score` 排序。
+- 新星榜：筛选 24 小时内发布的话题。
+- 飙升榜：比较最近 1 小时和上一小时的加权互动分变化。
+- 个性化热榜：先取全站候选，再按用户圈子偏好重排。
 
-**公式：**
-```
-个性化分数 = 原始热度分 × 用户圈子偏好权重
-```
+## 关键模块
 
-**偏好权重计算：**
-```
-weight = 1 + log2(interactionCount)  (最大10.0)
-```
+| 模块 | 职责 |
+| --- | --- |
+| `InteractionWriteService` | 互动写入事务边界 |
+| `AntiSpamService` | 频率限制、设备指纹降权、异常突增检测 |
+| `HeatAggregationTask` | 定时聚合热度并触发缓存失效与通知 |
+| `SnapshotTask` | 定时保存 TOP100 榜单快照 |
+| `RankingService` | 多维榜单查询与个性化重排 |
+| `RankingCacheManager` | 本地缓存、空值缓存、按前缀清理 |
+| `RankingNotificationService` | SSE 实时榜单事件推送 |
+| `TaskLockService` | 多实例定时任务互斥 |
 
----
+## 数据模型
 
-## 4. 防刷机制
+核心表：
 
-### 4.1 滑动窗口频率限制
-- 同一用户对同一话题24小时内有效互动上限：10次
-- 超出不计入热度但记录日志
+- `circle`：圈子主数据。
+- `topic`：话题、热度分、互动数和状态。
+- `interaction_event`：有效互动事件流水，包含反作弊热度倍率。
+- `user_behavior`：用户行为审计，包含无效行为原因。
+- `topic_score_snapshot`：榜单历史快照。
+- `user_circle_preference`：用户圈子偏好。
 
-### 4.2 设备指纹聚合检测
-- 相同设备指纹的多个账号互动不叠加计算
-- 阈值：同一设备指纹关联用户数 ≥ 5 视为异常
+详细字段与索引见 `docs/database-design.md`。
 
-### 4.3 异常突增检测
-- 某话题1小时内互动量超过历史均值10倍
-- 自动触发待审核标记，暂停计入热榜
+## 缓存策略
 
----
+- 榜单缓存使用 JVM 本地 `ConcurrentHashMap`。
+- 缓存空结果，降低穿透风险。
+- TTL 带随机抖动，降低同一时间大批 key 失效。
+- 屏蔽/恢复话题、热度聚合后清理榜单缓存。
+- 个性化榜单按 `userId + normalizedLimit` 单独缓存。
 
-## 5. 缓存策略
+## 多实例策略
 
-### 5.1 JVM本地缓存
-- 实现：ConcurrentHashMap + 定时清理
-- TTL：5秒
-- 随机化过期：±500ms（防止缓存雪崩）
+定时任务通过 MySQL `GET_LOCK` / `RELEASE_LOCK` 做互斥：
 
-### 5.2 缓存防护
-- **缓存穿透**：空值缓存（TTL 2.5秒）
-- **缓存雪崩**：随机化TTL分散过期时间
+- 热度聚合锁：`jike-hotrank:heat-aggregation`
+- 快照任务锁：`jike-hotrank:snapshot`
 
-### 5.3 缓存失效
-- 话题屏蔽后立即清除所有榜单缓存
-- 话题恢复后立即清除所有榜单缓存
+锁的获取、业务执行和释放保持在同一事务连接中，避免不同实例重复聚合或重复生成快照。
 
----
+## 可观测性与维护
 
-## 6. 定时任务
-
-| 任务 | 频率 | 说明 |
-|------|------|------|
-| HeatAggregationTask | 每5分钟 | 聚合互动事件，计算热度分 |
-| SnapshotTask | 每小时整点 | 保存TOP100快照，支持历史回溯 |
-
----
-
-## 7. 数据库设计
-
-### 7.1 ER图
-
-```
-┌─────────────┐       ┌─────────────┐       ┌─────────────┐
-│   circle    │       │    topic    │       │ interaction │
-│─────────────│       │─────────────│       │    _event   │
-│ id (PK)     │◄──┐   │ id (PK)     │◄──┐   │─────────────│
-│ name        │   └───│ circle_id   │   │   │ id (PK)     │
-│ description │       │ title       │   └───│ topic_id    │
-│ status      │       │ content     │       │ user_id     │
-│ sort_order  │       │ author_id   │       │ interaction │
-└─────────────┘       │ publish_time│       │   _type     │
-                      │ current_    │       │ device_     │
-                      │   score     │       │ fingerprint │
-                      │ interaction │       └─────────────┘
-                      │   _count    │
-                      │ status      │       ┌─────────────┐
-                      └─────────────┘       │   user_     │
-                                            │  behavior   │
-┌─────────────┐       ┌─────────────┐       │─────────────│
-│ user_circle │       │   topic_    │       │ id (PK)     │
-│ _preference │       │   score_    │       │ user_id     │
-│─────────────│       │  snapshot   │       │ topic_id    │
-│ id (PK)     │       │─────────────│       │ interaction │
-│ user_id     │       │ id (PK)     │       │   _type     │
-│ circle_id   │       │ topic_id    │       │ is_valid    │
-│ weight      │       │ circle_id   │       │ invalid_    │
-│ interaction │       │ score       │       │   reason    │
-│   _count    │       │ rank_position│      └─────────────┘
-└─────────────┘       │ snapshot_time│
-                      └─────────────┘
-```
-
-### 7.2 索引设计
-
-| 表名 | 索引 | 用途 |
-|------|------|------|
-| topic | idx_circle_score | 圈子热榜查询 |
-| topic | idx_publish_time | 新星榜查询 |
-| interaction_event | idx_topic_created | 互动聚合查询 |
-| interaction_event | idx_user_topic | 频率限制检查 |
-| topic_score_snapshot | idx_snapshot_time | 历史快照查询 |
-
----
-
-## 8. API接口清单
-
-### 8.1 互动事件接口
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | /api/interaction | 记录互动事件 |
-
-### 8.2 榜单查询接口
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | /api/ranking/global | 全站热榜 |
-| GET | /api/ranking/circle/{circleId} | 圈子热榜 |
-| GET | /api/ranking/newcomer | 新星榜 |
-| GET | /api/ranking/surging | 飙升榜 |
-| GET | /api/ranking/personalized | 个性化热榜 |
-
-### 8.3 话题管理接口
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | /api/topic/{id} | 查询话题详情 |
-| POST | /api/topic/{id}/block | 屏蔽话题 |
-| POST | /api/topic/{id}/unblock | 恢复话题 |
-
-### 8.4 防刷报告接口
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | /api/anti-spam/report | 防刷检测报告 |
-
----
-
-## 9. 项目结构
-
-```
-src/main/java/com/jike/hotrank/engine/
-├── JikeHotrankEngineApplication.java      # 启动类
-├── cache/
-│   └── RankingCacheManager.java           # JVM缓存管理
-├── controller/
-│   ├── AntiSpamController.java            # 防刷报告接口
-│   ├── InteractionController.java         # 互动事件接口
-│   ├── RankingController.java             # 榜单查询接口
-│   └── TopicController.java               # 话题管理接口
-├── dto/
-│   ├── ApiResponse.java                   # 统一响应体
-│   ├── RankingItemDTO.java                # 排名项DTO
-│   └── RankingResponseDTO.java            # 榜单响应DTO
-├── entity/                                # 实体类
-├── exception/
-│   ├── BusinessException.java             # 业务异常
-│   └── GlobalExceptionHandler.java        # 全局异常处理
-├── mapper/                                # Mapper接口
-├── service/
-│   ├── AntiSpamService.java               # 防刷服务
-│   ├── AntiSpamReportService.java         # 防刷报告服务
-│   ├── CircleService.java                 # 圈子服务
-│   ├── InteractionEventService.java       # 互动事件服务
-│   ├── RankingService.java                # 榜单服务
-│   ├── TopicService.java                  # 话题服务
-│   ├── UserBehaviorService.java           # 用户行为服务
-│   └── UserCirclePreferenceService.java   # 用户偏好服务
-├── task/
-│   ├── HeatAggregationTask.java           # 热度聚合任务
-│   └── SnapshotTask.java                  # 快照任务
-└── util/
-    └── HeatScoreCalculator.java           # 热度算法
-```
+- `repair.sql` 可用于重算互动数、热度分和用户偏好。
+- `20260706_add_interaction_weight_multiplier.sql` 用于旧库补充防刷倍率字段。
+- `20260706_add_rank_query_indexes.sql` 用于旧库补充当前查询路径所需索引。
+- `docs/loadtest` 下保留压测入口脚本，用于后续 Day5 性能审查。

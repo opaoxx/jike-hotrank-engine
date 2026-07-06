@@ -33,9 +33,10 @@ CREATE TABLE topic (
     created_at        DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'created time',
     updated_at        DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'updated time',
 
-    INDEX idx_circle_score (circle_id, current_score DESC),
+    INDEX idx_status_score (status, current_score DESC),
+    INDEX idx_circle_status_score (circle_id, status, current_score DESC),
+    INDEX idx_newcomer_rank (status, publish_time, current_score DESC),
     INDEX idx_publish_time (publish_time),
-    INDEX idx_status (status),
     INDEX idx_author (author_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='topic';
 
@@ -51,9 +52,10 @@ CREATE TABLE interaction_event (
     created_at          DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'created time',
 
     INDEX idx_topic_created (topic_id, created_at),
-    INDEX idx_user_topic (user_id, topic_id),
-    INDEX idx_created_at (created_at),
-    INDEX idx_device (device_fingerprint)
+    INDEX idx_user_topic_created (user_id, topic_id, created_at),
+    INDEX idx_created_topic_type (created_at, topic_id, interaction_type),
+    INDEX idx_device_created_user (device_fingerprint, created_at, user_id),
+    INDEX idx_user_device_created (user_id, device_fingerprint, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='interaction event';
 
 DROP TABLE IF EXISTS user_behavior;

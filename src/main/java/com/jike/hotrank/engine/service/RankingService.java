@@ -21,13 +21,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * 榜单服务类
- * 提供四类榜单查询：全站热榜、圈子热榜、新星榜、飙升榜
- * 支持个性化榜单重排
- *
- * @author JikeHotRank Team
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -38,74 +31,32 @@ public class RankingService {
     private final UserCirclePreferenceService userCirclePreferenceService;
     private final InteractionEventService interactionEventService;
 
-    /** 全站热榜默认数量 */
-    private static final int GLOBAL_RANK_LIMIT = 50;
-
-    /** 圈子热榜默认数量 */
-    private static final int CIRCLE_RANK_LIMIT = 20;
-
-    /** 新星榜默认数量 */
-    private static final int NEWCOMER_RANK_LIMIT = 10;
-
-    /** 飙升榜默认数量 */
-    private static final int SURGING_RANK_LIMIT = 10;
-
-    /**
-     * 获取全站热榜
-     *
-     * @param limit 返回数量限制（可选，默认50）
-     * @return 全站热榜响应
-     */
     public RankingResponseDTO getGlobalRanking(Integer limit) {
         int actualLimit = RankingLimits.global(limit);
         List<Topic> topics = topicService.getGlobalHotRank(actualLimit);
         List<RankingItemDTO> items = convertToRankingItems(topics, null);
-        log.debug("查询全站热榜：size={}", items.size());
+        log.debug("Query global ranking: size={}", items.size());
         return RankingResponseDTO.ofGlobal(items);
     }
 
-    /**
-     * 获取圈子热榜
-     *
-     * @param circleId 圈子ID
-     * @param limit 返回数量限制（可选，默认20）
-     * @return 圈子热榜响应
-     */
     public RankingResponseDTO getCircleRanking(Long circleId, Integer limit) {
         int actualLimit = RankingLimits.circle(limit);
         List<Topic> topics = topicService.getCircleHotRank(circleId, actualLimit);
-
-        // 获取圈子名称
         Circle circle = circleService.getById(circleId);
-        String circleName = (circle != null) ? circle.getName() : "未知圈子";
-
+        String circleName = circle != null ? circle.getName() : "未知圈子";
         List<RankingItemDTO> items = convertToRankingItems(topics, circleName);
-        log.debug("查询圈子热榜：circleId={}, size={}", circleId, items.size());
+        log.debug("Query circle ranking: circleId={}, size={}", circleId, items.size());
         return RankingResponseDTO.ofCircle(circleId, circleName, items);
     }
 
-    /**
-     * 获取新星榜（24小时内发布的热门话题）
-     *
-     * @param limit 返回数量限制（可选，默认10）
-     * @return 新星榜响应
-     */
     public RankingResponseDTO getNewcomerRanking(Integer limit) {
         int actualLimit = RankingLimits.newcomer(limit);
         List<Topic> topics = topicService.getNewcomerRank(actualLimit);
         List<RankingItemDTO> items = convertToRankingItems(topics, null);
-        log.debug("查询新星榜：size={}", items.size());
+        log.debug("Query newcomer ranking: size={}", items.size());
         return RankingResponseDTO.ofNewcomer(items);
     }
 
-    /**
-     * 获取飙升榜（近1小时热度增速最快的话题）
-     * <p>
-     * 算法：用当前1小时加权互动增量 / 上一小时加权互动增量 计算增速比
-     *
-     * @param limit 返回数量限制（可选，默认10）
-     * @return 飙升榜响应
-     */
     public RankingResponseDTO getSurgingRanking(Integer limit) {
         int actualLimit = RankingLimits.surging(limit);
 
@@ -130,66 +81,47 @@ public class RankingService {
             .collect(Collectors.toList());
 
         List<RankingItemDTO> items = convertToRankingItems(topics, null);
-        log.debug("查询飙升榜：size={}", items.size());
+        log.debug("Query surging ranking: size={}", items.size());
         return RankingResponseDTO.ofSurging(items);
     }
 
-    /**
-     * 获取个性化全站热榜
-     * <p>
-     * 根据用户的圈子偏好权重对榜单进行重排
-     *
-     * @param userId 用户ID
-     * @param limit 返回数量限制（可选，默认50）
-     * @return 个性化全站热榜响应
-     */
     public RankingResponseDTO getPersonalizedGlobalRanking(Long userId, Integer limit) {
         int actualLimit = RankingLimits.personalized(limit);
-
-        // 获取更多的话题以便重排（获取2倍数量）
         List<Topic> topics = topicService.getGlobalHotRank(RankingLimits.personalizedCandidate(limit));
 
-        // 获取用户圈子偏好
-        List<UserCirclePreference> preferences = userCirclePreferenceService.getUserPreferences(userId);
-        Map<Long, BigDecimal> preferenceWeightMap = preferences.stream()
+        Map<Long, BigDecimal> preferenceWeightMap = userCirclePreferenceService.getUserPreferences(userId).stream()
             .collect(Collectors.toMap(
                 UserCirclePreference::getCircleId,
                 UserCirclePreference::getWeight,
                 (existing, replacement) -> existing
             ));
 
-        // 计算个性化分数并重排
         List<Topic> personalizedTopics = topics.stream()
-            .map(topic -> {
-                BigDecimal preferenceWeight = preferenceWeightMap.getOrDefault(topic.getCircleId(), BigDecimal.ONE);
-                // 个性化分数 = 原始热度分 * 偏好权重
-                BigDecimal personalizedScore = topic.getCurrentScore().multiply(preferenceWeight);
-                Topic personalized = new Topic();
-                personalized.setId(topic.getId());
-                personalized.setCircleId(topic.getCircleId());
-                personalized.setTitle(topic.getTitle());
-                personalized.setAuthorId(topic.getAuthorId());
-                personalized.setCurrentScore(personalizedScore);
-                personalized.setInteractionCount(topic.getInteractionCount());
-                personalized.setPublishTime(topic.getPublishTime());
-                return personalized;
-            })
+            .map(topic -> toPersonalizedTopic(topic, preferenceWeightMap))
             .sorted(Comparator.comparing(Topic::getCurrentScore).reversed())
             .limit(actualLimit)
             .collect(Collectors.toList());
 
         List<RankingItemDTO> items = convertToRankingItems(personalizedTopics, null);
-        log.info("查询个性化热榜：userId={}, size={}", userId, items.size());
+        log.info("Query personalized ranking: userId={}, size={}", userId, items.size());
         return RankingResponseDTO.ofPersonalized(userId, items);
     }
 
-    /**
-     * 将话题列表转换为排名项列表
-     *
-     * @param topics 话题列表
-     * @param circleName 圈子名称（可选，用于圈子热榜）
-     * @return 排名项列表
-     */
+    private Topic toPersonalizedTopic(Topic topic, Map<Long, BigDecimal> preferenceWeightMap) {
+        BigDecimal preferenceWeight = preferenceWeightMap.getOrDefault(topic.getCircleId(), BigDecimal.ONE);
+        BigDecimal baseScore = topic.getCurrentScore() != null ? topic.getCurrentScore() : BigDecimal.ZERO;
+
+        Topic personalized = new Topic();
+        personalized.setId(topic.getId());
+        personalized.setCircleId(topic.getCircleId());
+        personalized.setTitle(topic.getTitle());
+        personalized.setAuthorId(topic.getAuthorId());
+        personalized.setCurrentScore(baseScore.multiply(preferenceWeight));
+        personalized.setInteractionCount(topic.getInteractionCount());
+        personalized.setPublishTime(topic.getPublishTime());
+        return personalized;
+    }
+
     private List<RankingItemDTO> convertToRankingItems(List<Topic> topics, String circleName) {
         List<RankingItemDTO> items = new ArrayList<>();
         for (int i = 0; i < topics.size(); i++) {
@@ -209,15 +141,12 @@ public class RankingService {
         return items;
     }
 
-    /**
-     * 获取圈子名称
-     */
     private String getCircleName(Long circleId) {
         if (circleId == null) {
             return "未知圈子";
         }
         Circle circle = circleService.getById(circleId);
-        return (circle != null) ? circle.getName() : "未知圈子";
+        return circle != null ? circle.getName() : "未知圈子";
     }
 
     private Map<Long, InteractionWindowStats> toInteractionStatsMap(List<Map<String, Object>> rows) {
@@ -262,7 +191,7 @@ public class RankingService {
             value = row.get(camelCaseKey);
         }
         if (!(value instanceof Number number)) {
-            throw new IllegalStateException("聚合结果缺少数值字段：" + snakeCaseKey);
+            throw new IllegalStateException("Aggregation result missing numeric field: " + snakeCaseKey);
         }
         return number.longValue();
     }
@@ -278,7 +207,7 @@ public class RankingService {
         if (value instanceof Number number) {
             return BigDecimal.valueOf(number.doubleValue());
         }
-        throw new IllegalStateException("鑱氬悎缁撴灉缂哄皯鏁板€煎瓧娈碉細" + snakeCaseKey);
+        throw new IllegalStateException("Aggregation result missing numeric field: " + snakeCaseKey);
     }
 
     private record InteractionWindowStats(BigDecimal weightedScore, int totalCount) {
