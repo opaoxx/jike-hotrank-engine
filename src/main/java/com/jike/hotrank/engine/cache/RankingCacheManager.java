@@ -1,6 +1,7 @@
 package com.jike.hotrank.engine.cache;
 
 import com.jike.hotrank.engine.dto.RankingResponseDTO;
+import com.jike.hotrank.engine.util.RankingLimits;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -196,32 +197,32 @@ public class RankingCacheManager {
      * 生成全站热榜缓存key
      */
     public static String globalRankKey(Integer limit) {
-        return "ranking:global:" + (limit != null ? limit : 50);
+        return "ranking:global:" + RankingLimits.global(limit);
     }
 
     /**
      * 生成圈子热榜缓存key
      */
     public static String circleRankKey(Long circleId, Integer limit) {
-        return "ranking:circle:" + circleId + ":" + (limit != null ? limit : 20);
+        return "ranking:circle:" + circleId + ":" + RankingLimits.circle(limit);
     }
 
     /**
      * 生成新星榜缓存key
      */
     public static String newcomerRankKey(Integer limit) {
-        return "ranking:newcomer:" + (limit != null ? limit : 10);
+        return "ranking:newcomer:" + RankingLimits.newcomer(limit);
     }
 
     /**
      * 生成飙升榜缓存key
      */
     public static String surgingRankKey(Integer limit) {
-        return "ranking:surging:" + (limit != null ? limit : 10);
+        return "ranking:surging:" + RankingLimits.surging(limit);
     }
 
     public static String personalizedRankKey(Long userId, Integer limit) {
-        return personalizedRankPrefix(userId) + ":" + (limit != null ? limit : 50);
+        return personalizedRankPrefix(userId) + ":" + RankingLimits.personalized(limit);
     }
 
     public static String personalizedRankPrefix(Long userId) {

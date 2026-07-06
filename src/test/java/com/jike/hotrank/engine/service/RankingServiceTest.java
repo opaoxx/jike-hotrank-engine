@@ -94,6 +94,25 @@ class RankingServiceTest {
             .toList());
     }
 
+    @Test
+    void shouldCapGlobalRankingLimitBeforeQueryingTopics() {
+        when(topicService.getGlobalHotRank(100)).thenReturn(List.of());
+
+        rankingService.getGlobalRanking(9999);
+
+        verify(topicService).getGlobalHotRank(100);
+    }
+
+    @Test
+    void shouldCapPersonalizedCandidateLimitBeforeQueryingTopics() {
+        when(topicService.getGlobalHotRank(200)).thenReturn(List.of());
+        when(userCirclePreferenceService.getUserPreferences(99L)).thenReturn(List.of());
+
+        rankingService.getPersonalizedGlobalRanking(99L, 9999);
+
+        verify(topicService).getGlobalHotRank(200);
+    }
+
     private Topic topic(Long id, String title) {
         Topic topic = new Topic();
         topic.setId(id);

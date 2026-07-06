@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -42,5 +43,14 @@ class RankingCacheManagerTest {
         } finally {
             cacheManager.shutdown();
         }
+    }
+
+    @Test
+    void shouldNormalizeLimitInRankingKeys() {
+        assertEquals("ranking:global:100", RankingCacheManager.globalRankKey(9999));
+        assertEquals("ranking:circle:5:20", RankingCacheManager.circleRankKey(5L, -1));
+        assertEquals("ranking:newcomer:50", RankingCacheManager.newcomerRankKey(9999));
+        assertEquals("ranking:surging:50", RankingCacheManager.surgingRankKey(9999));
+        assertEquals("ranking:personalized:9:100", RankingCacheManager.personalizedRankKey(9L, 9999));
     }
 }

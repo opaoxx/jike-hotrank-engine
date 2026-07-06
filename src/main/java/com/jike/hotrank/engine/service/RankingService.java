@@ -5,6 +5,7 @@ import com.jike.hotrank.engine.dto.RankingResponseDTO;
 import com.jike.hotrank.engine.entity.Circle;
 import com.jike.hotrank.engine.entity.Topic;
 import com.jike.hotrank.engine.entity.UserCirclePreference;
+import com.jike.hotrank.engine.util.RankingLimits;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -56,7 +57,7 @@ public class RankingService {
      * @return 全站热榜响应
      */
     public RankingResponseDTO getGlobalRanking(Integer limit) {
-        int actualLimit = (limit != null && limit > 0) ? limit : GLOBAL_RANK_LIMIT;
+        int actualLimit = RankingLimits.global(limit);
         List<Topic> topics = topicService.getGlobalHotRank(actualLimit);
         List<RankingItemDTO> items = convertToRankingItems(topics, null);
         log.debug("查询全站热榜：size={}", items.size());
@@ -71,7 +72,7 @@ public class RankingService {
      * @return 圈子热榜响应
      */
     public RankingResponseDTO getCircleRanking(Long circleId, Integer limit) {
-        int actualLimit = (limit != null && limit > 0) ? limit : CIRCLE_RANK_LIMIT;
+        int actualLimit = RankingLimits.circle(limit);
         List<Topic> topics = topicService.getCircleHotRank(circleId, actualLimit);
 
         // 获取圈子名称
@@ -90,7 +91,7 @@ public class RankingService {
      * @return 新星榜响应
      */
     public RankingResponseDTO getNewcomerRanking(Integer limit) {
-        int actualLimit = (limit != null && limit > 0) ? limit : NEWCOMER_RANK_LIMIT;
+        int actualLimit = RankingLimits.newcomer(limit);
         List<Topic> topics = topicService.getNewcomerRank(actualLimit);
         List<RankingItemDTO> items = convertToRankingItems(topics, null);
         log.debug("查询新星榜：size={}", items.size());
@@ -106,7 +107,7 @@ public class RankingService {
      * @return 飙升榜响应
      */
     public RankingResponseDTO getSurgingRanking(Integer limit) {
-        int actualLimit = (limit != null && limit > 0) ? limit : SURGING_RANK_LIMIT;
+        int actualLimit = RankingLimits.surging(limit);
 
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime oneHourAgo = now.minusHours(1);
@@ -143,10 +144,10 @@ public class RankingService {
      * @return 个性化全站热榜响应
      */
     public RankingResponseDTO getPersonalizedGlobalRanking(Long userId, Integer limit) {
-        int actualLimit = (limit != null && limit > 0) ? limit : GLOBAL_RANK_LIMIT;
+        int actualLimit = RankingLimits.personalized(limit);
 
         // 获取更多的话题以便重排（获取2倍数量）
-        List<Topic> topics = topicService.getGlobalHotRank(actualLimit * 2);
+        List<Topic> topics = topicService.getGlobalHotRank(RankingLimits.personalizedCandidate(limit));
 
         // 获取用户圈子偏好
         List<UserCirclePreference> preferences = userCirclePreferenceService.getUserPreferences(userId);
