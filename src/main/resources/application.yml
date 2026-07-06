@@ -1,6 +1,4 @@
 spring:
-  mvc:
-    throw-exception-if-no-handler-found: true
   web:
     resources:
       add-mappings: true
@@ -15,6 +13,11 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 3000ms
 
 server:
   port: 8080

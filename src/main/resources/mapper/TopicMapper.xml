@@ -105,4 +105,12 @@
         ORDER BY created_at DESC
     </select>
 
+    <!-- 查询所有话题 -->
+    <select id="selectAll" resultMap="TopicResult">
+        SELECT id, circle_id, title, content, author_id, publish_time, current_score,
+               interaction_count, status, created_at, updated_at
+        FROM topic
+        ORDER BY current_score DESC
+    </select>
+
 </mapper>

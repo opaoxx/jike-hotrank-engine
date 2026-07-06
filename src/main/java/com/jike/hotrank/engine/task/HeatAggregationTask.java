@@ -1,6 +1,7 @@
 package com.jike.hotrank.engine.task;
 
 import com.jike.hotrank.engine.cache.RankingCacheManager;
+import com.jike.hotrank.engine.cache.RedisRankingService;
 import com.jike.hotrank.engine.entity.Topic;
 import com.jike.hotrank.engine.service.InteractionEventService;
 import com.jike.hotrank.engine.service.RankingNotificationService;
@@ -21,6 +22,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * 热度聚合定时任务
+ *
+ * @author JikeHotRank Team
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -33,6 +39,7 @@ public class HeatAggregationTask {
     private final RankingCacheManager cacheManager;
     private final RankingNotificationService rankingNotificationService;
     private final TaskLockService taskLockService;
+    private final RedisRankingService redisRankingService;
 
     @Scheduled(fixedRate = 300000)
     public void aggregateHeatWithLock() {
@@ -78,6 +85,15 @@ public class HeatAggregationTask {
             if (!topicsToUpdate.isEmpty()) {
                 topicService.batchUpdateScore(topicsToUpdate);
                 cacheManager.evictByPrefix(RankingCacheManager.rankingPrefix());
+
+                // 同步到 Redis ZSet（O(N log N) 批量写入）
+                try {
+                    List<Topic> allTopics = topicService.listAll();
+                    redisRankingService.syncAllTopics(allTopics);
+                } catch (Exception e) {
+                    log.warn("Redis sync failed (non-fatal): {}", e.getMessage());
+                }
+
                 rankingNotificationService.publishRankingUpdated(topicsToUpdate.size());
                 log.info("Heat aggregation finished: updatedTopics={}", topicsToUpdate.size());
                 checkTopNEvent(previousTopTopicIds, TOP_N_THRESHOLD);

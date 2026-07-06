@@ -67,6 +67,10 @@ public class TopicService {
         return topicMapper.selectByStatus(status);
     }
 
+    public List<Topic> listAll() {
+        return topicMapper.selectAll();
+    }
+
     /**
      * 更新话题热度分
      *

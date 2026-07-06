@@ -8,6 +8,8 @@ import java.util.List;
 
 /**
  * 话题Mapper接口
+ *
+ * @author JikeHotRank Team
  */
 @Mapper
 public interface TopicMapper {
@@ -70,4 +72,9 @@ public interface TopicMapper {
      * 查询指定状态的话题
      */
     List<Topic> selectByStatus(@Param("status") Integer status);
+
+    /**
+     * 查询所有话题
+     */
+    List<Topic> selectAll();
 }

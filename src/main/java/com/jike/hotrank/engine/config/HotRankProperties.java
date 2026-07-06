@@ -11,6 +11,8 @@ import java.math.BigDecimal;
 @ConfigurationProperties(prefix = "jike-hotrank")
 public class HotRankProperties {
 
+    private Scheduling scheduling = new Scheduling();
+
     private Heat heat = new Heat();
 
     private AntiSpam antiSpam = new AntiSpam();
@@ -18,6 +20,11 @@ public class HotRankProperties {
     private Performance performance = new Performance();
 
     private Operations operations = new Operations();
+
+    @Data
+    public static class Scheduling {
+        private boolean enabled = true;
+    }
 
     @Data
     public static class Heat {
