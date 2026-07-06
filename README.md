@@ -107,6 +107,15 @@ SSE 事件名包括 `ranking-updated` 和 `top-n-entered`。
 | GET | `/api/analysis/anti-cheat-stats?days=7` | 反作弊统计 |
 | GET | `/api/analysis/overview` | 分析总览 |
 
+### 运维与演示触发
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| POST | `/api/ops/heat-aggregation?token=ops_demo_token` | 手动触发热度聚合，用于 Demo 或本地验证 |
+| POST | `/api/ops/snapshot?token=ops_demo_token` | 手动生成榜单快照，用于 Demo 或本地验证 |
+
+默认 token 位于 `jike-hotrank.operations.token`。生产环境应替换为正式后台权限体系。
+
 ## 热度算法
 
 ```text
@@ -136,6 +145,9 @@ score = weightedInteractionScore / (publishHours + 2)^1.8
 | `docs/loadtest/benchmark.sh` | Linux/macOS 压测入口 |
 | `docs/performance-analysis.md` | Day5 性能与数据分析说明 |
 | `docs/sql-explain-checklist.md` | SQL 执行计划检查清单 |
+| `docs/demo-guide.md` | Day6 答辩 Demo 操作手册 |
+| `docs/final-review-checklist.md` | Day6 小组互评与终审清单 |
+| `docs/presentation-outline.md` | Day6 答辩 PPT 大纲 |
 
 ## 验证
 

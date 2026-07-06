@@ -48,7 +48,10 @@ class SqlScriptConsistencyTest {
             "README.md",
             "docs/architecture.md",
             "docs/database-design.md",
+            "docs/demo-guide.md",
+            "docs/final-review-checklist.md",
             "docs/performance-analysis.md",
+            "docs/presentation-outline.md",
             "docs/sql-explain-checklist.md",
             "src/main/resources/sql/data.sql",
             "src/main/resources/sql/repair.sql"

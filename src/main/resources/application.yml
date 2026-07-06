@@ -62,3 +62,5 @@ jike-hotrank:
     max-qps: 200
     max-duration-seconds: 30
     max-threads: 64
+  operations:
+    token: ops_demo_token

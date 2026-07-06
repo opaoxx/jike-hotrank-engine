@@ -17,6 +17,8 @@ public class HotRankProperties {
 
     private Performance performance = new Performance();
 
+    private Operations operations = new Operations();
+
     @Data
     public static class Heat {
         private Weights weights = new Weights();
@@ -82,5 +84,10 @@ public class HotRankProperties {
         private int maxQps = 200;
         private int maxDurationSeconds = 30;
         private int maxThreads = 64;
+    }
+
+    @Data
+    public static class Operations {
+        private String token = "ops_demo_token";
     }
 }
