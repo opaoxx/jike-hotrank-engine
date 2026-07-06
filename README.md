@@ -148,6 +148,8 @@ score = weightedInteractionScore / (publishHours + 2)^1.8
 | `docs/demo-guide.md` | Day6 答辩 Demo 操作手册 |
 | `docs/final-review-checklist.md` | Day6 小组互评与终审清单 |
 | `docs/presentation-outline.md` | Day6 答辩 PPT 大纲 |
+| `docs/day7-defense-guide.md` | Day7 答辩问答手册 |
+| `docs/delivery-report.md` | 最终交付报告与 7 天任务覆盖表 |
 
 ## 验证
 
