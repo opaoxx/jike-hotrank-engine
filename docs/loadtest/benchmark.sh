@@ -1,121 +1,88 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# ================================================================
-# 即刻App热点榜单引擎 - 性能压测脚本
-# 工具：wrk (Windows可用wrk2或Apache Bench替代)
-# ================================================================
+set -uo pipefail
 
-BASE_URL="http://localhost:8080"
+BASE_URL="${BASE_URL:-http://localhost:8080}"
+TOKEN="${TOKEN:-perf_test_token}"
+REQUESTS="${REQUESTS:-100}"
+RESULT_DIR="${RESULT_DIR:-docs/loadtest/results}"
+TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
+RESULT_FILE="$RESULT_DIR/benchmark-$TIMESTAMP.csv"
 
-echo "=========================================="
-echo "即刻App热点榜单引擎 - 性能压测"
-echo "=========================================="
-echo ""
+mkdir -p "$RESULT_DIR"
 
-# 检查是否安装了curl
-if ! command -v curl &> /dev/null; then
-    echo "错误：未找到curl命令"
-    exit 1
+if ! command -v curl >/dev/null 2>&1; then
+  echo "curl is required."
+  exit 1
 fi
 
-# ================================================================
-# 测试1：全站热榜查询性能
-# ================================================================
-echo "【测试1】全站热榜查询性能"
-echo "并发数: 100, 请求数: 1000"
-echo "URL: $BASE_URL/api/ranking/global"
-echo ""
+echo "Jike HotRank Engine benchmark"
+echo "BASE_URL=$BASE_URL"
+echo "REQUESTS=$REQUESTS"
+echo "RESULT_FILE=$RESULT_FILE"
+echo
 
-# 使用循环模拟并发请求
-SUCCESS_COUNT=0
-FAIL_COUNT=0
-TOTAL_TIME=0
+echo "scenario,method,path,http_code,time_ms" > "$RESULT_FILE"
 
-for i in $(seq 1 100); do
-    START_TIME=$(date +%s%N)
-    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/api/ranking/global")
-    END_TIME=$(date +%s%N)
+run_get() {
+  local scenario="$1"
+  local path="$2"
+  local output
+  output="$(curl -s -o /dev/null -w "%{http_code} %{time_total}" "$BASE_URL$path")"
+  local code="${output%% *}"
+  local seconds="${output##* }"
+  local millis
+  millis="$(awk "BEGIN { printf \"%.2f\", $seconds * 1000 }")"
+  echo "$scenario,GET,$path,$code,$millis" >> "$RESULT_FILE"
+}
 
-    DURATION=$(( (END_TIME - START_TIME) / 1000000 ))
-    TOTAL_TIME=$((TOTAL_TIME + DURATION))
+run_post_interaction() {
+  local scenario="interaction_write"
+  local index="$1"
+  local user_id=$((900000 + index))
+  local body
+  body="{\"topicId\":1,\"userId\":$user_id,\"interactionType\":1,\"deviceFingerprint\":\"bench_$index\",\"ipAddress\":\"10.0.0.$((index % 255))\"}"
+  local output
+  output="$(curl -s -o /dev/null -w "%{http_code} %{time_total}" \
+    -X POST "$BASE_URL/api/interaction" \
+    -H "Content-Type: application/json" \
+    -d "$body")"
+  local code="${output%% *}"
+  local seconds="${output##* }"
+  local millis
+  millis="$(awk "BEGIN { printf \"%.2f\", $seconds * 1000 }")"
+  echo "$scenario,POST,/api/interaction,$code,$millis" >> "$RESULT_FILE"
+}
 
-    if [ "$HTTP_CODE" = "200" ]; then
-        SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
-    else
-        FAIL_COUNT=$((FAIL_COUNT + 1))
-    fi
+for i in $(seq 1 "$REQUESTS"); do
+  bucket=$((i % 10))
+  if [ "$bucket" -lt 4 ]; then
+    run_get "global_ranking" "/api/ranking/global?limit=50"
+  elif [ "$bucket" -lt 6 ]; then
+    run_get "circle_ranking" "/api/ranking/circle/1?limit=20"
+  elif [ "$bucket" -lt 9 ]; then
+    run_post_interaction "$i"
+  else
+    run_get "anti_spam_report" "/api/anti-spam/report"
+  fi
 done
 
-echo "完成！成功: $SUCCESS_COUNT, 失败: $FAIL_COUNT"
-echo "平均响应时间: $((TOTAL_TIME / 100)) ms"
-echo ""
+echo
+echo "Summary"
+awk -F, '
+NR > 1 {
+  count[$1]++
+  total[$1]+=$5
+  if ($4 >= 200 && $4 < 300) success[$1]++
+}
+END {
+  printf "%-22s %-10s %-10s %-12s\n", "scenario", "requests", "success", "avg_ms"
+  for (scenario in count) {
+    printf "%-22s %-10d %-10d %-12.2f\n", scenario, count[scenario], success[scenario], total[scenario] / count[scenario]
+  }
+}
+' "$RESULT_FILE"
 
-# ================================================================
-# 测试2：圈子热榜查询性能
-# ================================================================
-echo "【测试2】圈子热榜查询性能"
-echo "并发数: 100, 请求数: 1000"
-echo "URL: $BASE_URL/api/ranking/circle/1"
-echo ""
-
-SUCCESS_COUNT=0
-FAIL_COUNT=0
-TOTAL_TIME=0
-
-for i in $(seq 1 100); do
-    START_TIME=$(date +%s%N)
-    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/api/ranking/circle/1")
-    END_TIME=$(date +%s%N)
-
-    DURATION=$(( (END_TIME - START_TIME) / 1000000 ))
-    TOTAL_TIME=$((TOTAL_TIME + DURATION))
-
-    if [ "$HTTP_CODE" = "200" ]; then
-        SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
-    else
-        FAIL_COUNT=$((FAIL_COUNT + 1))
-    fi
-done
-
-echo "完成！成功: $SUCCESS_COUNT, 失败: $FAIL_COUNT"
-echo "平均响应时间: $((TOTAL_TIME / 100)) ms"
-echo ""
-
-# ================================================================
-# 测试3：互动事件写入性能
-# ================================================================
-echo "【测试3】互动事件写入性能"
-echo "并发数: 100, 请求数: 1000"
-echo "URL: $BASE_URL/api/interaction"
-echo ""
-
-SUCCESS_COUNT=0
-FAIL_COUNT=0
-TOTAL_TIME=0
-
-for i in $(seq 1 100); do
-    USER_ID=$((9000 + i))
-    START_TIME=$(date +%s%N)
-    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-        -X POST "$BASE_URL/api/interaction" \
-        -H "Content-Type: application/json" \
-        -d "{\"topicId\":1,\"userId\":$USER_ID,\"interactionType\":1,\"deviceFingerprint\":\"bench_$i\",\"ipAddress\":\"10.0.0.$i\"}")
-    END_TIME=$(date +%s%N)
-
-    DURATION=$(( (END_TIME - START_TIME) / 1000000 ))
-    TOTAL_TIME=$((TOTAL_TIME + DURATION))
-
-    if [ "$HTTP_CODE" = "200" ]; then
-        SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
-    else
-        FAIL_COUNT=$((FAIL_COUNT + 1))
-    fi
-done
-
-echo "完成！成功: $SUCCESS_COUNT, 失败: $FAIL_COUNT"
-echo "平均响应时间: $((TOTAL_TIME / 100)) ms"
-echo ""
-
-echo "=========================================="
-echo "压测完成！"
-echo "=========================================="
+echo
+echo "Built-in load test endpoint:"
+echo "curl -X POST \"$BASE_URL/api/perf/load-test?qps=20&duration=5&token=$TOKEN\""

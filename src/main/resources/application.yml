@@ -57,3 +57,8 @@ jike-hotrank:
       history-window-hours: 24
       multiplier-threshold: 10
       minimum-current-count: 10
+  performance:
+    token: perf_test_token
+    max-qps: 200
+    max-duration-seconds: 30
+    max-threads: 64

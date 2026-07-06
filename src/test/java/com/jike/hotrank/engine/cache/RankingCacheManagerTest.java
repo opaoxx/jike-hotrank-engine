@@ -53,4 +53,27 @@ class RankingCacheManagerTest {
         assertEquals("ranking:surging:50", RankingCacheManager.surgingRankKey(9999));
         assertEquals("ranking:personalized:9:100", RankingCacheManager.personalizedRankKey(9L, 9999));
     }
+
+    @Test
+    void shouldExposeCacheStats() {
+        RankingCacheManager cacheManager = new RankingCacheManager();
+        try {
+            cacheManager.getResult("ranking:missing");
+            cacheManager.putNull("ranking:null");
+            cacheManager.getResult("ranking:null");
+            cacheManager.evict("ranking:null");
+
+            RankingCacheManager.CacheStats stats = cacheManager.getStats();
+
+            assertEquals(0, stats.size());
+            assertEquals(1, stats.hitCount());
+            assertEquals(1, stats.missCount());
+            assertEquals(1, stats.nullHitCount());
+            assertEquals(1, stats.putCount());
+            assertEquals(1, stats.evictionCount());
+            assertEquals(0.5, stats.hitRate());
+        } finally {
+            cacheManager.shutdown();
+        }
+    }
 }

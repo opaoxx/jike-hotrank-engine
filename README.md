@@ -35,6 +35,7 @@ spring.datasource.password: root
 ```bash
 mysql -u root -p < src/main/resources/sql/20260706_add_interaction_weight_multiplier.sql
 mysql -u root -p < src/main/resources/sql/20260706_add_rank_query_indexes.sql
+mysql -u root -p < src/main/resources/sql/20260706_add_analysis_query_indexes.sql
 ```
 
 ## 核心能力
@@ -94,6 +95,18 @@ mysql -u root -p < src/main/resources/sql/20260706_add_rank_query_indexes.sql
 
 SSE 事件名包括 `ranking-updated` 和 `top-n-entered`。
 
+### 性能与数据分析
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| POST | `/api/perf/load-test?qps=20&duration=5&token=perf_test_token` | 触发受限的轻量压测 |
+| GET | `/api/perf/cache-comparison` | 查看榜单缓存统计 |
+| GET | `/api/analysis/heat-distribution` | 热度分布分析 |
+| GET | `/api/analysis/interaction-stats?hours=24` | 互动类型统计 |
+| GET | `/api/analysis/circle-activity` | 圈子活跃度分析 |
+| GET | `/api/analysis/anti-cheat-stats?days=7` | 反作弊统计 |
+| GET | `/api/analysis/overview` | 分析总览 |
+
 ## 热度算法
 
 ```text
@@ -118,8 +131,11 @@ score = weightedInteractionScore / (publishHours + 2)^1.8
 | `src/main/resources/sql/schema.sql` | 初始化数据库表结构 |
 | `src/main/resources/sql/data.sql` | 初始化本地演示数据 |
 | `src/main/resources/sql/repair.sql` | 修复历史互动数、热度分、偏好权重和孤立数据 |
+| `src/main/resources/sql/20260706_add_analysis_query_indexes.sql` | 为 Day5 分析和审计查询补索引 |
 | `docs/loadtest/benchmark.bat` | Windows 压测入口 |
 | `docs/loadtest/benchmark.sh` | Linux/macOS 压测入口 |
+| `docs/performance-analysis.md` | Day5 性能与数据分析说明 |
+| `docs/sql-explain-checklist.md` | SQL 执行计划检查清单 |
 
 ## 验证
 

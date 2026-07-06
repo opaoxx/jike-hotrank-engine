@@ -127,6 +127,10 @@ public class InteractionEventService {
         );
     }
 
+    public List<Map<String, Object>> aggregateByType(LocalDateTime startTime, LocalDateTime endTime) {
+        return interactionEventMapper.aggregateByType(startTime, endTime);
+    }
+
     /**
      * 查询话题在指定时间段内的互动总量
      *

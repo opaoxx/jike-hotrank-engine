@@ -2,7 +2,6 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.jike.hotrank.engine.mapper.InteractionEventMapper">
 
-    <!-- 结果映射 -->
     <resultMap id="InteractionEventResult" type="com.jike.hotrank.engine.entity.InteractionEvent">
         <id property="id" column="id"/>
         <result property="topicId" column="topic_id"/>
@@ -14,13 +13,11 @@
         <result property="createdAt" column="created_at"/>
     </resultMap>
 
-    <!-- 插入互动事件 -->
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO interaction_event (topic_id, user_id, interaction_type, device_fingerprint, ip_address, weight_multiplier)
         VALUES (#{topicId}, #{userId}, #{interactionType}, #{deviceFingerprint}, #{ipAddress}, #{weightMultiplier})
     </insert>
 
-    <!-- 批量插入互动事件 -->
     <insert id="batchInsert">
         INSERT INTO interaction_event (topic_id, user_id, interaction_type, device_fingerprint, ip_address, weight_multiplier)
         VALUES
@@ -29,7 +26,6 @@
         </foreach>
     </insert>
 
-    <!-- 查询用户对指定话题的互动次数（滑动窗口内） -->
     <select id="countByUserAndTopic" resultType="int">
         SELECT COUNT(*)
         FROM interaction_event
@@ -38,17 +34,16 @@
           AND created_at &gt;= #{startTime}
     </select>
 
-    <!-- 按话题聚合互动事件(用于热度计算) -->
     <select id="aggregateByTopic" resultType="java.util.Map">
-        SELECT topic_id, interaction_type, COUNT(*) as total_count
+        SELECT topic_id, interaction_type, COUNT(*) AS total_count
         FROM interaction_event
-        WHERE created_at &gt;= #{startTime} AND created_at &lt; #{endTime}
+        WHERE created_at &gt;= #{startTime}
+          AND created_at &lt; #{endTime}
         GROUP BY topic_id, interaction_type
     </select>
 
-    <!-- 按话题聚合全部互动事件（用于全量热度重算） -->
     <select id="aggregateAllByTopic" resultType="java.util.Map">
-        SELECT topic_id, interaction_type, COUNT(*) as total_count
+        SELECT topic_id, interaction_type, COUNT(*) AS total_count
         FROM interaction_event
         GROUP BY topic_id, interaction_type
     </select>
@@ -67,7 +62,6 @@
         GROUP BY topic_id
     </select>
 
-    <!-- 按话题聚合指定时间段内的加权互动分（用于飙升榜） -->
     <select id="aggregateWeightedScoreByTopic" resultType="java.util.Map">
         SELECT topic_id,
                SUM(CASE interaction_type
@@ -84,7 +78,14 @@
         GROUP BY topic_id
     </select>
 
-    <!-- 查询话题在指定时间段内的互动总量 -->
+    <select id="aggregateByType" resultType="java.util.Map">
+        SELECT interaction_type, COUNT(*) AS total_count
+        FROM interaction_event
+        WHERE created_at &gt;= #{startTime}
+          AND created_at &lt; #{endTime}
+        GROUP BY interaction_type
+    </select>
+
     <select id="countByTopicAndTimeRange" resultType="int">
         SELECT COUNT(*)
         FROM interaction_event
@@ -93,7 +94,6 @@
           AND created_at &lt; #{endTime}
     </select>
 
-    <!-- 按设备指纹聚合互动（用于设备指纹检测） -->
     <select id="countDistinctUserByDevice" resultType="int">
         SELECT COUNT(DISTINCT user_id)
         FROM interaction_event

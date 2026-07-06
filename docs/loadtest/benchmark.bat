@@ -2,93 +2,68 @@
 chcp 65001 >nul
 setlocal enabledelayedexpansion
 
-:: ================================================================
-:: 即刻App热点榜单引擎 - Windows 性能压测脚本
-:: ================================================================
+if "%BASE_URL%"=="" set BASE_URL=http://localhost:8080
+if "%TOKEN%"=="" set TOKEN=perf_test_token
+if "%REQUESTS%"=="" set REQUESTS=100
+if "%RESULT_DIR%"=="" set RESULT_DIR=docs\loadtest\results
 
-set BASE_URL=http://localhost:8080
+if not exist "%RESULT_DIR%" mkdir "%RESULT_DIR%"
+set RESULT_FILE=%RESULT_DIR%\benchmark-%DATE:~0,4%%DATE:~5,2%%DATE:~8,2%-%TIME:~0,2%%TIME:~3,2%%TIME:~6,2%.csv
+set RESULT_FILE=%RESULT_FILE: =0%
 
-echo ==========================================
-echo 即刻App热点榜单引擎 - 性能压测
-echo ==========================================
+where curl >nul 2>nul
+if errorlevel 1 (
+    echo curl is required.
+    exit /b 1
+)
+
+echo Jike HotRank Engine benchmark
+echo BASE_URL=%BASE_URL%
+echo REQUESTS=%REQUESTS%
+echo RESULT_FILE=%RESULT_FILE%
 echo.
 
-:: ================================================================
-:: 测试1：全站热榜查询性能
-:: ================================================================
-echo 【测试1】全站热榜查询性能
-echo 并发数: 50, 请求数: 500
-echo URL: %BASE_URL%/api/ranking/global
-echo.
+echo scenario,method,path,http_code,time_ms>"%RESULT_FILE%"
 
-set SUCCESS=0
-set FAIL=0
-set TOTAL_TIME=0
-
-for /L %%i in (1,1,50) do (
-    for /f "tokens=*" %%a in ('curl -s -o nul -w "%%{http_code} %%{time_total}" "%BASE_URL%/api/ranking/global"') do (
-        set RESULT=%%a
-        set HTTP_CODE=!RESULT:~0,3!
-        if "!HTTP_CODE!"=="200" (
-            set /a SUCCESS+=1
-        ) else (
-            set /a FAIL+=1
-        )
+for /L %%i in (1,1,%REQUESTS%) do (
+    set /a BUCKET=%%i %% 10
+    if !BUCKET! LSS 4 (
+        call :GET global_ranking "/api/ranking/global?limit=50"
+    ) else if !BUCKET! LSS 6 (
+        call :GET circle_ranking "/api/ranking/circle/1?limit=20"
+    ) else if !BUCKET! LSS 9 (
+        call :POST_INTERACTION %%i
+    ) else (
+        call :GET anti_spam_report "/api/anti-spam/report"
     )
 )
 
-echo 完成！成功: %SUCCESS%, 失败: %FAIL%
 echo.
+echo CSV result written to %RESULT_FILE%
+echo Built-in load test endpoint:
+echo curl -X POST "%BASE_URL%/api/perf/load-test?qps=20^&duration=5^&token=%TOKEN%"
+exit /b 0
 
-:: ================================================================
-:: 测试2：圈子热榜查询性能
-:: ================================================================
-echo 【测试2】圈子热榜查询性能
-echo URL: %BASE_URL%/api/ranking/circle/1
-echo.
-
-set SUCCESS=0
-set FAIL=0
-
-for /L %%i in (1,1,50) do (
-    for /f "tokens=*" %%a in ('curl -s -o nul -w "%%{http_code}" "%BASE_URL%/api/ranking/circle/1"') do (
-        if "%%a"=="200" (
-            set /a SUCCESS+=1
-        ) else (
-            set /a FAIL+=1
-        )
-    )
+:GET
+set SCENARIO=%~1
+set PATH_VALUE=%~2
+for /f "tokens=1,2" %%a in ('curl -s -o nul -w "%%{http_code} %%{time_total}" "%BASE_URL%%PATH_VALUE%"') do (
+    set CODE=%%a
+    set SECONDS=%%b
 )
+for /f %%m in ('powershell -NoProfile -Command "[math]::Round([double]'!SECONDS!' * 1000, 2)"') do set MILLIS=%%m
+echo %SCENARIO%,GET,%PATH_VALUE%,!CODE!,!MILLIS!>>"%RESULT_FILE%"
+exit /b 0
 
-echo 完成！成功: %SUCCESS%, 失败: %FAIL%
-echo.
-
-:: ================================================================
-:: 测试3：互动事件写入性能
-:: ================================================================
-echo 【测试3】互动事件写入性能
-echo URL: %BASE_URL%/api/interaction
-echo.
-
-set SUCCESS=0
-set FAIL=0
-
-for /L %%i in (1,1,50) do (
-    set /a USER_ID=8000 + %%i
-    for /f "tokens=*" %%a in ('curl -s -o nul -w "%%{http_code}" -X POST "%BASE_URL%/api/interaction" -H "Content-Type: application/json" -d "{\"topicId\":1,\"userId\":!USER_ID!,\"interactionType\":1,\"deviceFingerprint\":\"bench_%%i\",\"ipAddress\":\"10.0.0.%%i\"}"') do (
-        if "%%a"=="200" (
-            set /a SUCCESS+=1
-        ) else (
-            set /a FAIL+=1
-        )
-    )
+:POST_INTERACTION
+set INDEX=%~1
+set /a USER_ID=900000 + %INDEX%
+set /a IP_LAST=%INDEX% %% 255
+set BODY={\"topicId\":1,\"userId\":!USER_ID!,\"interactionType\":1,\"deviceFingerprint\":\"bench_%INDEX%\",\"ipAddress\":\"10.0.0.!IP_LAST!\"}
+for /f "tokens=1,2" %%a in ('curl -s -o nul -w "%%{http_code} %%{time_total}" -X POST "%BASE_URL%/api/interaction" -H "Content-Type: application/json" -d "!BODY!"') do (
+    set CODE=%%a
+    set SECONDS=%%b
 )
-
-echo 完成！成功: %SUCCESS%, 失败: %FAIL%
-echo.
-
-echo ==========================================
-echo 压测完成！
-echo ==========================================
-
-pause
+for /f %%m in ('powershell -NoProfile -Command "[math]::Round([double]'!SECONDS!' * 1000, 2)"') do set MILLIS=%%m
+echo interaction_write,POST,/api/interaction,!CODE!,!MILLIS!>>"%RESULT_FILE%"
+exit /b 0

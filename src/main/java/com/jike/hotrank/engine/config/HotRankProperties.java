@@ -15,6 +15,8 @@ public class HotRankProperties {
 
     private AntiSpam antiSpam = new AntiSpam();
 
+    private Performance performance = new Performance();
+
     @Data
     public static class Heat {
         private Weights weights = new Weights();
@@ -72,5 +74,13 @@ public class HotRankProperties {
             private int multiplierThreshold = 10;
             private int minimumCurrentCount = 10;
         }
+    }
+
+    @Data
+    public static class Performance {
+        private String token = "perf_test_token";
+        private int maxQps = 200;
+        private int maxDurationSeconds = 30;
+        private int maxThreads = 64;
     }
 }

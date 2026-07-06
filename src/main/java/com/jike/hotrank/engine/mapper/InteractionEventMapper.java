@@ -68,6 +68,9 @@ public interface InteractionEventMapper {
                                                             @Param("shareWeight") int shareWeight,
                                                             @Param("commentWeight") int commentWeight);
 
+    List<Map<String, Object>> aggregateByType(@Param("startTime") LocalDateTime startTime,
+                                              @Param("endTime") LocalDateTime endTime);
+
     /**
      * 查询话题在指定时间段内的互动总量
      * @param topicId 话题ID

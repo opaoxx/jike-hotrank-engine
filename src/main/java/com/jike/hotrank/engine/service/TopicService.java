@@ -63,6 +63,10 @@ public class TopicService {
         return topicMapper.selectNewcomerRank(limit);
     }
 
+    public List<Topic> listByStatus(Integer status) {
+        return topicMapper.selectByStatus(status);
+    }
+
     /**
      * 更新话题热度分
      *
