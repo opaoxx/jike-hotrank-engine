@@ -10,10 +10,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -31,6 +35,7 @@ public class RankingService {
     private final TopicService topicService;
     private final CircleService circleService;
     private final UserCirclePreferenceService userCirclePreferenceService;
+    private final InteractionEventService interactionEventService;
 
     /** 全站热榜默认数量 */
     private static final int GLOBAL_RANK_LIMIT = 50;
@@ -95,8 +100,7 @@ public class RankingService {
     /**
      * 获取飙升榜（近1小时热度增速最快的话题）
      * <p>
-     * 算法：用当前热度分 / 上一小时热度分 计算增速比
-     * 注意：简化实现，使用热度分作为排序依据
+     * 算法：用当前1小时加权互动增量 / 上一小时加权互动增量 计算增速比
      *
      * @param limit 返回数量限制（可选，默认10）
      * @return 飙升榜响应
@@ -104,9 +108,26 @@ public class RankingService {
     public RankingResponseDTO getSurgingRanking(Integer limit) {
         int actualLimit = (limit != null && limit > 0) ? limit : SURGING_RANK_LIMIT;
 
-        // 简化实现：获取全站热榜TOP N作为飙升榜
-        // 完整实现需要对比当前小时和上一小时的热度分增量
-        List<Topic> topics = topicService.getGlobalHotRank(actualLimit);
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime oneHourAgo = now.minusHours(1);
+        LocalDateTime twoHoursAgo = now.minusHours(2);
+
+        Map<Long, InteractionWindowStats> currentStats = toInteractionStatsMap(
+            interactionEventService.aggregateWeightedScoreByTopic(oneHourAgo, now));
+        Map<Long, InteractionWindowStats> previousStats = toInteractionStatsMap(
+            interactionEventService.aggregateWeightedScoreByTopic(twoHoursAgo, oneHourAgo));
+
+        List<Topic> topics = currentStats.entrySet().stream()
+            .filter(entry -> entry.getValue().weightedScore() > 0)
+            .map(entry -> toSurgingTopic(entry.getKey(), entry.getValue(), previousStats.get(entry.getKey())))
+            .filter(Objects::nonNull)
+            .sorted(Comparator
+                .comparing(Topic::getCurrentScore, Comparator.nullsLast(Comparator.naturalOrder()))
+                .reversed()
+                .thenComparing(Topic::getInteractionCount, Comparator.nullsLast(Comparator.reverseOrder())))
+            .limit(actualLimit)
+            .collect(Collectors.toList());
+
         List<RankingItemDTO> items = convertToRankingItems(topics, null);
         log.debug("查询飙升榜：size={}", items.size());
         return RankingResponseDTO.ofSurging(items);
@@ -196,5 +217,55 @@ public class RankingService {
         }
         Circle circle = circleService.getById(circleId);
         return (circle != null) ? circle.getName() : "未知圈子";
+    }
+
+    private Map<Long, InteractionWindowStats> toInteractionStatsMap(List<Map<String, Object>> rows) {
+        Map<Long, InteractionWindowStats> result = new HashMap<>();
+        if (rows == null) {
+            return result;
+        }
+        for (Map<String, Object> row : rows) {
+            Long topicId = getLong(row, "topic_id", "topicId");
+            long weightedScore = getLong(row, "weighted_score", "weightedScore");
+            int totalCount = getLong(row, "total_count", "totalCount").intValue();
+            result.put(topicId, new InteractionWindowStats(weightedScore, totalCount));
+        }
+        return result;
+    }
+
+    private Topic toSurgingTopic(Long topicId, InteractionWindowStats current, InteractionWindowStats previous) {
+        Topic topic = topicService.getById(topicId);
+        if (topic == null || topic.getStatus() == null || topic.getStatus() != 1) {
+            return null;
+        }
+
+        long previousScore = previous != null ? previous.weightedScore() : 0;
+        double surgeScore = previousScore <= 0
+            ? current.weightedScore()
+            : (double) current.weightedScore() / previousScore;
+
+        Topic surgingTopic = new Topic();
+        surgingTopic.setId(topic.getId());
+        surgingTopic.setCircleId(topic.getCircleId());
+        surgingTopic.setTitle(topic.getTitle());
+        surgingTopic.setAuthorId(topic.getAuthorId());
+        surgingTopic.setPublishTime(topic.getPublishTime());
+        surgingTopic.setInteractionCount(current.totalCount());
+        surgingTopic.setCurrentScore(BigDecimal.valueOf(surgeScore).setScale(4, RoundingMode.HALF_UP));
+        return surgingTopic;
+    }
+
+    private Long getLong(Map<String, Object> row, String snakeCaseKey, String camelCaseKey) {
+        Object value = row.get(snakeCaseKey);
+        if (value == null) {
+            value = row.get(camelCaseKey);
+        }
+        if (!(value instanceof Number number)) {
+            throw new IllegalStateException("聚合结果缺少数值字段：" + snakeCaseKey);
+        }
+        return number.longValue();
+    }
+
+    private record InteractionWindowStats(long weightedScore, int totalCount) {
     }
 }

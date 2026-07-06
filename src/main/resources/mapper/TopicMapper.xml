@@ -66,11 +66,22 @@
 
     <!-- 批量更新话题热度分 -->
     <update id="batchUpdateScore">
-        <foreach collection="list" item="item" separator=";">
-            UPDATE topic
-            SET current_score = #{item.currentScore},
-                interaction_count = #{item.interactionCount}
-            WHERE id = #{item.id}
+        UPDATE topic
+        SET current_score = CASE id
+            <foreach collection="list" item="item">
+                WHEN #{item.id} THEN #{item.currentScore}
+            </foreach>
+            ELSE current_score
+        END,
+            interaction_count = CASE id
+            <foreach collection="list" item="item">
+                WHEN #{item.id} THEN #{item.interactionCount}
+            </foreach>
+            ELSE interaction_count
+        END
+        WHERE id IN
+        <foreach collection="list" item="item" open="(" separator="," close=")">
+            #{item.id}
         </foreach>
     </update>
 

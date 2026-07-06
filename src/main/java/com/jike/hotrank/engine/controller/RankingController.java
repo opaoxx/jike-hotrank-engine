@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.function.Supplier;
+
 /**
  * 榜单查询控制器
  * 提供四类榜单查询接口：全站热榜、圈子热榜、新星榜、飙升榜
@@ -45,22 +47,7 @@ public class RankingController {
 
         // 尝试从缓存获取
         String cacheKey = RankingCacheManager.globalRankKey(limit);
-        RankingResponseDTO cached = cacheManager.get(cacheKey);
-        if (cached != null) {
-            return ApiResponse.success(cached);
-        }
-
-        // 缓存未命中，查询数据库
-        RankingResponseDTO response = rankingService.getGlobalRanking(limit);
-
-        // 写入缓存
-        if (response != null && response.getItems() != null && !response.getItems().isEmpty()) {
-            cacheManager.put(cacheKey, response);
-        } else {
-            cacheManager.putNull(cacheKey);
-        }
-
-        return ApiResponse.success(response);
+        return getCachedRanking(cacheKey, () -> rankingService.getGlobalRanking(limit));
     }
 
     /**
@@ -84,22 +71,7 @@ public class RankingController {
 
         // 尝试从缓存获取
         String cacheKey = RankingCacheManager.circleRankKey(circleId, limit);
-        RankingResponseDTO cached = cacheManager.get(cacheKey);
-        if (cached != null) {
-            return ApiResponse.success(cached);
-        }
-
-        // 缓存未命中，查询数据库
-        RankingResponseDTO response = rankingService.getCircleRanking(circleId, limit);
-
-        // 写入缓存
-        if (response != null && response.getItems() != null && !response.getItems().isEmpty()) {
-            cacheManager.put(cacheKey, response);
-        } else {
-            cacheManager.putNull(cacheKey);
-        }
-
-        return ApiResponse.success(response);
+        return getCachedRanking(cacheKey, () -> rankingService.getCircleRanking(circleId, limit));
     }
 
     /**
@@ -117,22 +89,7 @@ public class RankingController {
 
         // 尝试从缓存获取
         String cacheKey = RankingCacheManager.newcomerRankKey(limit);
-        RankingResponseDTO cached = cacheManager.get(cacheKey);
-        if (cached != null) {
-            return ApiResponse.success(cached);
-        }
-
-        // 缓存未命中，查询数据库
-        RankingResponseDTO response = rankingService.getNewcomerRanking(limit);
-
-        // 写入缓存
-        if (response != null && response.getItems() != null && !response.getItems().isEmpty()) {
-            cacheManager.put(cacheKey, response);
-        } else {
-            cacheManager.putNull(cacheKey);
-        }
-
-        return ApiResponse.success(response);
+        return getCachedRanking(cacheKey, () -> rankingService.getNewcomerRanking(limit));
     }
 
     /**
@@ -150,22 +107,7 @@ public class RankingController {
 
         // 尝试从缓存获取
         String cacheKey = RankingCacheManager.surgingRankKey(limit);
-        RankingResponseDTO cached = cacheManager.get(cacheKey);
-        if (cached != null) {
-            return ApiResponse.success(cached);
-        }
-
-        // 缓存未命中，查询数据库
-        RankingResponseDTO response = rankingService.getSurgingRanking(limit);
-
-        // 写入缓存
-        if (response != null && response.getItems() != null && !response.getItems().isEmpty()) {
-            cacheManager.put(cacheKey, response);
-        } else {
-            cacheManager.putNull(cacheKey);
-        }
-
-        return ApiResponse.success(response);
+        return getCachedRanking(cacheKey, () -> rankingService.getSurgingRanking(limit));
     }
 
     /**
@@ -189,6 +131,24 @@ public class RankingController {
 
         // 个性化榜单不缓存（每个用户不同）
         RankingResponseDTO response = rankingService.getPersonalizedGlobalRanking(userId, limit);
+        return ApiResponse.success(response);
+    }
+
+    /**
+     * 查询缓存；缓存未命中时执行查询并写回。可正确处理空值缓存。
+     */
+    private ApiResponse<RankingResponseDTO> getCachedRanking(String cacheKey, Supplier<RankingResponseDTO> loader) {
+        RankingCacheManager.CacheResult cached = cacheManager.getResult(cacheKey);
+        if (cached.hit()) {
+            return ApiResponse.success(cached.data());
+        }
+
+        RankingResponseDTO response = loader.get();
+        if (response != null) {
+            cacheManager.put(cacheKey, response);
+        } else {
+            cacheManager.putNull(cacheKey);
+        }
         return ApiResponse.success(response);
     }
 }

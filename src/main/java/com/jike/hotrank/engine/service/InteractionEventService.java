@@ -78,6 +78,26 @@ public class InteractionEventService {
     }
 
     /**
+     * 按话题聚合全部互动事件（用于全量热度重算）
+     *
+     * @return 聚合结果列表
+     */
+    public List<Map<String, Object>> aggregateAllByTopic() {
+        return interactionEventMapper.aggregateAllByTopic();
+    }
+
+    /**
+     * 按话题聚合指定时间段内的加权互动分（用于飙升榜）
+     *
+     * @param startTime 开始时间
+     * @param endTime 结束时间
+     * @return 聚合结果列表
+     */
+    public List<Map<String, Object>> aggregateWeightedScoreByTopic(LocalDateTime startTime, LocalDateTime endTime) {
+        return interactionEventMapper.aggregateWeightedScoreByTopic(startTime, endTime);
+    }
+
+    /**
      * 查询话题在指定时间段内的互动总量
      *
      * @param topicId 话题ID

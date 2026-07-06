@@ -55,6 +55,20 @@ public class RankingCacheManager {
         }
     }
 
+    /**
+     * 缓存查询结果。hit=true 且 data=null 表示命中了空值缓存。
+     */
+    public record CacheResult(boolean hit, RankingResponseDTO data) {
+
+        public static CacheResult miss() {
+            return new CacheResult(false, null);
+        }
+
+        public static CacheResult hit(RankingResponseDTO data) {
+            return new CacheResult(true, data);
+        }
+    }
+
     public RankingCacheManager() {
         // 启动定时清理器，每秒清理过期缓存
         this.cleaner = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -72,20 +86,30 @@ public class RankingCacheManager {
      * @return 缓存的榜单数据，如果不存在或已过期返回null
      */
     public RankingResponseDTO get(String key) {
+        return getResult(key).data();
+    }
+
+    /**
+     * 获取缓存查询结果，可区分未命中和命中空值。
+     *
+     * @param key 缓存key
+     * @return 缓存查询结果
+     */
+    public CacheResult getResult(String key) {
         CacheEntry entry = cache.get(key);
         if (entry == null) {
             log.debug("缓存未命中：key={}", key);
-            return null;
+            return CacheResult.miss();
         }
 
         if (entry.isExpired()) {
             cache.remove(key);
             log.debug("缓存已过期：key={}", key);
-            return null;
+            return CacheResult.miss();
         }
 
         log.debug("缓存命中：key={}", key);
-        return entry.data;
+        return CacheResult.hit(entry.data);
     }
 
     /**

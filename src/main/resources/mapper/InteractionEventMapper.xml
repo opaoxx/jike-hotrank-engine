@@ -45,6 +45,30 @@
         GROUP BY topic_id, interaction_type
     </select>
 
+    <!-- 按话题聚合全部互动事件（用于全量热度重算） -->
+    <select id="aggregateAllByTopic" resultType="java.util.Map">
+        SELECT topic_id, interaction_type, COUNT(*) as total_count
+        FROM interaction_event
+        GROUP BY topic_id, interaction_type
+    </select>
+
+    <!-- 按话题聚合指定时间段内的加权互动分（用于飙升榜） -->
+    <select id="aggregateWeightedScoreByTopic" resultType="java.util.Map">
+        SELECT topic_id,
+               SUM(CASE interaction_type
+                       WHEN 1 THEN 1
+                       WHEN 2 THEN 2
+                       WHEN 3 THEN 3
+                       WHEN 5 THEN 5
+                       ELSE 0
+                   END) AS weighted_score,
+               COUNT(*) AS total_count
+        FROM interaction_event
+        WHERE created_at &gt;= #{startTime}
+          AND created_at &lt; #{endTime}
+        GROUP BY topic_id
+    </select>
+
     <!-- 查询话题在指定时间段内的互动总量 -->
     <select id="countByTopicAndTimeRange" resultType="int">
         SELECT COUNT(*)

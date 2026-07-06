@@ -43,6 +43,23 @@ public interface InteractionEventMapper {
                                                @Param("endTime") LocalDateTime endTime);
 
     /**
+     * 按话题聚合全部互动事件（用于全量热度重算）
+     *
+     * @return 聚合结果列表：topic_id, interaction_type, total_count
+     */
+    List<Map<String, Object>> aggregateAllByTopic();
+
+    /**
+     * 按话题聚合指定时间段内的加权互动分（用于飙升榜）
+     *
+     * @param startTime 开始时间
+     * @param endTime 结束时间
+     * @return 聚合结果列表：topic_id, weighted_score, total_count
+     */
+    List<Map<String, Object>> aggregateWeightedScoreByTopic(@Param("startTime") LocalDateTime startTime,
+                                                            @Param("endTime") LocalDateTime endTime);
+
+    /**
      * 查询话题在指定时间段内的互动总量
      * @param topicId 话题ID
      * @param startTime 开始时间

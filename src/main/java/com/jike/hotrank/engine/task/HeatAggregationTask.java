@@ -45,9 +45,9 @@ public class HeatAggregationTask {
      * 执行频率：每5分钟（300000毫秒）
      * <p>
      * 执行逻辑：
-     * 1. 查询最近5分钟内的互动事件
+     * 1. 查询全部有效互动事件
      * 2. 按话题聚合，计算各类型互动次数
-     * 3. 使用时间衰减算法计算热度分
+     * 3. 使用时间衰减算法全量重算热度分
      * 4. 更新话题表的热度分和互动次数
      * 5. 检测上榜事件并触发通知
      */
@@ -62,8 +62,8 @@ public class HeatAggregationTask {
             // 1. 查询聚合前的TOP N话题ID（用于上榜事件检测）
             Set<Long> previousTopTopicIds = getTopTopicIds(TOP_N_THRESHOLD);
 
-            // 2. 查询最近5分钟内的互动事件聚合数据
-            List<Map<String, Object>> aggregationData = interactionEventService.aggregateByTopic(startTime, endTime);
+            // 2. 查询全部互动事件聚合数据。全量重算能避免把已衰减后的currentScore当作原始互动分重复累加。
+            List<Map<String, Object>> aggregationData = interactionEventService.aggregateAllByTopic();
 
             if (aggregationData == null || aggregationData.isEmpty()) {
                 log.info("热度聚合任务完成：无新互动事件");
@@ -73,9 +73,9 @@ public class HeatAggregationTask {
             // 3. 按话题ID分组聚合
             Map<Long, Map<Integer, Long>> topicInteractionMap = new HashMap<>();
             for (Map<String, Object> row : aggregationData) {
-                Long topicId = ((Number) row.get("topic_id")).longValue();
-                Integer interactionType = ((Number) row.get("interaction_type")).intValue();
-                Long count = ((Number) row.get("total_count")).longValue();
+                Long topicId = getRequiredLong(row, "topic_id", "topicId");
+                Integer interactionType = getRequiredLong(row, "interaction_type", "interactionType").intValue();
+                Long count = getRequiredLong(row, "total_count", "totalCount");
 
                 topicInteractionMap
                     .computeIfAbsent(topicId, k -> new HashMap<>())
@@ -106,12 +106,9 @@ public class HeatAggregationTask {
                     totalInteractionCount += count;
                 }
 
-                // 累加到现有互动次数
-                int newInteractionCount = topic.getInteractionCount() + totalInteractionCount;
-
                 // 使用时间衰减算法计算热度分
                 BigDecimal newScore = HeatScoreCalculator.calculateScore(
-                    totalInteractionScore + topic.getCurrentScore().longValue(),
+                    totalInteractionScore,
                     topic.getPublishTime()
                 );
 
@@ -119,7 +116,7 @@ public class HeatAggregationTask {
                 Topic updateTopic = new Topic();
                 updateTopic.setId(topicId);
                 updateTopic.setCurrentScore(newScore);
-                updateTopic.setInteractionCount(newInteractionCount);
+                updateTopic.setInteractionCount(totalInteractionCount);
                 topicsToUpdate.add(updateTopic);
             }
 
@@ -183,5 +180,16 @@ public class HeatAggregationTask {
     private void publishTopNAlert(int threshold, Topic topic) {
         log.info("【上榜事件触发】话题首次进入TOP{}：topicId={}, title={}, score={}",
                  threshold, topic.getId(), topic.getTitle(), topic.getCurrentScore());
+    }
+
+    private Long getRequiredLong(Map<String, Object> row, String snakeCaseKey, String camelCaseKey) {
+        Object value = row.get(snakeCaseKey);
+        if (value == null) {
+            value = row.get(camelCaseKey);
+        }
+        if (!(value instanceof Number number)) {
+            throw new IllegalStateException("聚合结果缺少数值字段：" + snakeCaseKey);
+        }
+        return number.longValue();
     }
 }
