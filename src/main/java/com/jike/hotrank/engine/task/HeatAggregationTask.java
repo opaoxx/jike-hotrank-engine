@@ -88,7 +88,7 @@ public class HeatAggregationTask {
 
                 // 同步到 Redis ZSet（O(N log N) 批量写入）
                 try {
-                    List<Topic> allTopics = topicService.listAll();
+                    List<Topic> allTopics = topicService.listByStatus(1);
                     redisRankingService.syncAllTopics(allTopics);
                 } catch (Exception e) {
                     log.warn("Redis sync failed (non-fatal): {}", e.getMessage());

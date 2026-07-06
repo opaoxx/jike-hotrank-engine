@@ -1,5 +1,24 @@
-# Vue 3 + Vite
+# Jike HotRank Dashboard
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+Vue 3 + Vite frontend for the Jike HotRank Engine demo dashboard.
 
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
+## Commands
+
+```bash
+npm install
+npm run dev
+npm run build
+```
+
+Development server: `http://localhost:5173`
+
+The Vite dev server proxies `/api` requests to the Spring Boot backend on `http://localhost:8080`.
+
+Production build output goes to `../src/main/resources/static`, so the Spring Boot app can serve the SPA directly.
+
+## Pages
+
+- Overview: metrics, heat distribution, interaction stats, circle activity and cache gauge.
+- Global ranking, circle ranking, newcomer ranking and surging ranking.
+- Anti-spam report with blocked counts, suspicious users and invalid behavior charts.
+- Interaction form for local demo writes.

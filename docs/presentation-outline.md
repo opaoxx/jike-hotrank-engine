@@ -103,9 +103,11 @@ git diff --check
 - SQL 有迁移脚本和修复脚本。
 - README、架构、数据库、性能、Demo 文档齐全。
 
-## 10. 后续演进
+## 10. 已完成增强与后续演进
 
-- Redis ZSet 承接多实例榜单缓存。
+- 已完成 Redis ZSet 对比排名接口，可展示 MySQL 排名与 Redis 排名两套方案。
+- 已完成 Vue Dashboard，可现场展示总览、榜单、反作弊和互动写入。
+- 后续可将 Redis ZSet 从对比通道升级为主读链路。
 - Kafka 削峰互动写入。
 - 读写分离和冷热数据分层。
 - 完整后台权限替代 Demo token。

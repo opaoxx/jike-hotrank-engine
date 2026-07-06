@@ -9,7 +9,8 @@
 | 后端服务 | Spring Boot + MyBatis + MySQL 热点榜单引擎 |
 | 核心接口 | 互动写入、全站榜单、圈子榜单、新星榜、飙升榜、个性化榜单 |
 | 反作弊 | 频率限制、设备指纹降权、异常突增检测、审计报告 |
-| 缓存与推送 | 本地榜单缓存、空值缓存、随机 TTL、SSE 榜单事件 |
+| 缓存与推送 | 本地榜单缓存、Redis ZSet 对比排名、空值缓存、随机 TTL、SSE 榜单事件 |
+| 前端看板 | Vue 3 + Vite + Element Plus + ECharts Dashboard |
 | 运维工具 | 手动聚合、手动快照、修复 SQL、压测脚本、EXPLAIN 清单 |
 | 文档 | README、架构文档、数据库设计、性能分析、Demo 手册、答辩手册 |
 
@@ -41,6 +42,9 @@
 | 实时推送 | `GET /api/notifications/rankings/stream` |
 | 压测入口 | `POST /api/perf/load-test?qps=20&duration=5&token=perf_test_token` |
 | 缓存统计 | `GET /api/perf/cache-comparison` |
+| Redis 全站热榜 | `GET /api/redis-ranking/global?limit=50` |
+| Redis 圈子热榜 | `GET /api/redis-ranking/circle/{circleId}?limit=20` |
+| Redis 手动同步 | `POST /api/redis-ranking/sync?token=ops_demo_token` |
 | 数据分析总览 | `GET /api/analysis/overview` |
 | 手动聚合 | `POST /api/ops/heat-aggregation?token=ops_demo_token` |
 | 手动快照 | `POST /api/ops/snapshot?token=ops_demo_token` |
@@ -65,7 +69,7 @@ git diff --check
 
 ## 已知限制
 
-- 当前缓存为 JVM 本地缓存，多实例下无法天然共享缓存内容。
+- 主查询链路仍以 MySQL 排名 + JVM 本地缓存为准；Redis ZSet 已提供对比排名通道，但未替代所有榜单接口。
 - 运维触发入口使用简单 token，适合课程 Demo，不等同于生产权限体系。
 - 压测接口是轻量模拟器，真实 1000 QPS 验证应使用独立压测工具和隔离环境。
 - 热度聚合当前按全量互动重新计算，数据量扩大后需要窗口化、增量化或流式聚合。
@@ -75,8 +79,8 @@ git diff --check
 
 | 阶段 | 目标 | 方案 |
 | --- | --- | --- |
-| 短期 | 提升多实例读一致性 | Redis 缓存和发布订阅失效 |
+| 短期 | 提升多实例读一致性 | Redis 发布订阅失效或统一分布式缓存 |
 | 中期 | 承接互动写入峰值 | Kafka 或 RocketMQ 削峰填谷 |
-| 中期 | 提升榜单实时性 | Redis ZSet 维护实时排名 |
+| 中期 | 提升榜单实时性 | 将 Redis ZSet 从对比通道升级为主读链路 |
 | 长期 | 支持数据分析和推荐 | 数仓、离线特征、用户画像 |
 | 长期 | 完善运营后台 | 权限体系、审核流、配置中心 |

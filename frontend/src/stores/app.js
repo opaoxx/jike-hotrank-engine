@@ -15,7 +15,8 @@ export const useAppStore = defineStore('app', () => {
 
   async function loadCacheStats() {
     try {
-      cacheStats.value = await fetchCacheStats()
+      const result = await fetchCacheStats()
+      cacheStats.value = result.cacheStats || result
     } catch (e) {
       /* ignore */
     }

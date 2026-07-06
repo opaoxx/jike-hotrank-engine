@@ -11,6 +11,7 @@ flowchart TD
     Client["客户端 / Apifox / 压测工具"] --> Controller["Controller 层"]
     Controller --> WriteService["InteractionWriteService"]
     Controller --> RankingService["RankingService"]
+    Controller --> RedisRank["RedisRankingService"]
     Controller --> TopicService["TopicService"]
     WriteService --> AntiSpam["AntiSpamService"]
     WriteService --> EventService["InteractionEventService"]
@@ -23,6 +24,7 @@ flowchart TD
     SnapshotTask["SnapshotTask"] --> Lock
     HeatTask --> EventService
     HeatTask --> Cache
+    HeatTask --> RedisRank
     HeatTask --> Notify["RankingNotificationService"]
     EventService --> Mapper["MyBatis Mapper"]
     TopicService --> Mapper
@@ -48,7 +50,7 @@ flowchart TD
 3. 聚合全量互动事件，按互动权重和 `weight_multiplier` 得到加权互动分。
 4. `HeatScoreCalculator` 结合发布时间做时间衰减。
 5. 批量更新 `topic.current_score` 和 `topic.interaction_count`。
-6. 清理榜单缓存，并通过 `RankingNotificationService` 推送榜单变化事件。
+6. 清理榜单缓存，同步正常话题到 Redis ZSet，并通过 `RankingNotificationService` 推送榜单变化事件。
 
 ### 榜单查询
 
@@ -72,6 +74,7 @@ flowchart TD
 | `SnapshotTask` | 定时保存 TOP100 榜单快照 |
 | `RankingService` | 多维榜单查询与个性化重排 |
 | `RankingCacheManager` | 本地缓存、空值缓存、按前缀清理 |
+| `RedisRankingService` | Redis ZSet 榜单同步、查询和 MySQL 排名方案对比 |
 | `RankingNotificationService` | SSE 实时榜单事件推送 |
 | `TaskLockService` | 多实例定时任务互斥 |
 
@@ -95,6 +98,7 @@ flowchart TD
 - TTL 带随机抖动，降低同一时间大批 key 失效。
 - 屏蔽/恢复话题、热度聚合后清理榜单缓存。
 - 个性化榜单按 `userId + normalizedLimit` 单独缓存。
+- Redis ZSet 作为对比排名通道：热度聚合后全量替换正常话题，屏蔽话题时同步移除 Redis 成员。
 
 ## 多实例策略
 

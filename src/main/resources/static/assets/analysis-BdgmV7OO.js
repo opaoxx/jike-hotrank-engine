@@ -1,0 +1,1 @@
+import{i as e}from"./index-Cc9r0IfH.js";function t(){return e.get(`/analysis/overview`)}function n(){return e.get(`/analysis/circle-activity`)}function r(t=7){return e.get(`/analysis/anti-cheat-stats`,{params:{days:t}})}export{n,t as r,r as t};

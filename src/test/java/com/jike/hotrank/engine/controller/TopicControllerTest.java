@@ -1,6 +1,7 @@
 package com.jike.hotrank.engine.controller;
 
 import com.jike.hotrank.engine.cache.RankingCacheManager;
+import com.jike.hotrank.engine.cache.RedisRankingService;
 import com.jike.hotrank.engine.dto.ApiResponse;
 import com.jike.hotrank.engine.entity.Topic;
 import com.jike.hotrank.engine.service.TopicService;
@@ -23,6 +24,9 @@ class TopicControllerTest {
 
     @Mock
     private RankingCacheManager cacheManager;
+
+    @Mock
+    private RedisRankingService redisRankingService;
 
     @InjectMocks
     private TopicController topicController;
@@ -48,5 +52,6 @@ class TopicControllerTest {
 
         assertEquals(0, response.getCode());
         verify(cacheManager).evictAll();
+        verify(redisRankingService).removeTopic(1L, null);
     }
 }

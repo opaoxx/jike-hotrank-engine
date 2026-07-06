@@ -8,8 +8,8 @@
 --   mysql -u root -p --default-character-set=utf8mb4 < src/main/resources/sql/data.sql
 --
 -- 或 IDEA Database Console 中按顺序打开并执行下方 SOURCE 标记的文件：
--- SOURCE src/main/resources/sql/schema.sql
--- SOURCE src/main/resources/sql/data.sql
+-- SOURCE src/main/resources/sql/schema.sql;
+-- SOURCE src/main/resources/sql/data.sql;
 -- ================================================================
 
 SELECT 'fresh database setup finished: run schema.sql then data.sql manually, or use the CLI commands above' AS message;

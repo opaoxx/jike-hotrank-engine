@@ -54,7 +54,7 @@ public class RedisRankingController {
         if (!isValidToken(token)) {
             return ApiResponse.error(403, "运维 token 无效");
         }
-        List<Topic> topics = topicService.listAll();
+        List<Topic> topics = topicService.listByStatus(1);
         redisRankingService.syncAllTopics(topics);
         return ApiResponse.success("已同步 " + topics.size() + " 个话题到 Redis");
     }

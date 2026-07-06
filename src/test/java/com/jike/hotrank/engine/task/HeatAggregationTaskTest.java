@@ -1,6 +1,7 @@
 package com.jike.hotrank.engine.task;
 
 import com.jike.hotrank.engine.cache.RankingCacheManager;
+import com.jike.hotrank.engine.cache.RedisRankingService;
 import com.jike.hotrank.engine.entity.Topic;
 import com.jike.hotrank.engine.service.InteractionEventService;
 import com.jike.hotrank.engine.service.RankingNotificationService;
@@ -43,6 +44,9 @@ class HeatAggregationTaskTest {
     @Mock
     private TaskLockService taskLockService;
 
+    @Mock
+    private RedisRankingService redisRankingService;
+
     @InjectMocks
     private HeatAggregationTask heatAggregationTask;
 
@@ -69,6 +73,7 @@ class HeatAggregationTaskTest {
             Map.of("topic_id", 1L, "weighted_score", new BigDecimal("14.0"), "total_count", 6L)
         ));
         when(topicService.getById(1L)).thenReturn(topic);
+        when(topicService.listByStatus(1)).thenReturn(List.of(topic));
 
         heatAggregationTask.aggregateHeat();
 
@@ -81,6 +86,7 @@ class HeatAggregationTaskTest {
         assertTrue(updated.getCurrentScore().compareTo(BigDecimal.TEN) < 0,
             "Heat should be recalculated from weighted interaction score only, not existing currentScore.");
         verify(cacheManager).evictByPrefix(RankingCacheManager.rankingPrefix());
+        verify(redisRankingService).syncAllTopics(List.of(topic));
         verify(rankingNotificationService).publishRankingUpdated(1);
         verify(interactionEventService, never()).aggregateAllByTopic();
     }

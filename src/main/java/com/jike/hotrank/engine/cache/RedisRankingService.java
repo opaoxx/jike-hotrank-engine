@@ -54,6 +54,14 @@ public class RedisRankingService {
         }
     }
 
+    public void removeTopic(Long topicId, Long circleId) {
+        String member = String.valueOf(topicId);
+        redisTemplate.opsForZSet().remove(KEY_GLOBAL, member);
+        if (circleId != null) {
+            redisTemplate.opsForZSet().remove(KEY_CIRCLE_PREFIX + circleId, member);
+        }
+    }
+
     /**
      * 全站热榜 TOP N — O(logN+M) 复杂度。
      */
@@ -83,12 +91,18 @@ public class RedisRankingService {
      * 批量同步全量数据到 Redis（定时任务调用，每5分钟一次）。
      */
     public void syncAllTopics(List<Topic> topics) {
+        flushAll();
+        int syncedCount = 0;
         for (Topic topic : topics) {
+            if (!isRankable(topic)) {
+                continue;
+            }
             double score = topic.getCurrentScore() != null
                 ? topic.getCurrentScore().doubleValue() : 0.0;
             setScore(topic.getId(), topic.getCircleId(), score);
+            syncedCount++;
         }
-        log.info("Redis ranking sync completed: {} topics", topics.size());
+        log.info("Redis ranking sync completed: {} topics", syncedCount);
     }
 
     /**
@@ -123,9 +137,15 @@ public class RedisRankingService {
                 continue;
             }
 
-            Long topicId = Long.parseLong(member);
+            Long topicId;
+            try {
+                topicId = Long.parseLong(member);
+            } catch (NumberFormatException e) {
+                log.warn("Skip invalid Redis ranking member: {}", member);
+                continue;
+            }
             Topic topic = topicService.getById(topicId);
-            if (topic == null) {
+            if (!isRankable(topic)) {
                 continue;
             }
 
@@ -142,6 +162,10 @@ public class RedisRankingService {
             items.add(item);
         }
         return items;
+    }
+
+    private boolean isRankable(Topic topic) {
+        return topic != null && Integer.valueOf(1).equals(topic.getStatus());
     }
 
     private String getCircleName(Long circleId) {

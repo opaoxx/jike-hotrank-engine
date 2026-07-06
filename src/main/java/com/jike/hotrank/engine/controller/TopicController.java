@@ -1,6 +1,7 @@
 package com.jike.hotrank.engine.controller;
 
 import com.jike.hotrank.engine.cache.RankingCacheManager;
+import com.jike.hotrank.engine.cache.RedisRankingService;
 import com.jike.hotrank.engine.dto.ApiResponse;
 import com.jike.hotrank.engine.entity.Topic;
 import com.jike.hotrank.engine.service.TopicService;
@@ -20,6 +21,7 @@ public class TopicController {
 
     private final TopicService topicService;
     private final RankingCacheManager cacheManager;
+    private final RedisRankingService redisRankingService;
 
     @GetMapping("/{id}")
     public ApiResponse<Topic> getTopic(@PathVariable Long id) {
@@ -55,6 +57,7 @@ public class TopicController {
         }
 
         cacheManager.evictAll();
+        evictFromRedisRanking(topic);
         log.info("Topic blocked and ranking cache evicted: topicId={}", id);
         return ApiResponse.success();
     }
@@ -80,8 +83,28 @@ public class TopicController {
         }
 
         cacheManager.evictAll();
+        syncToRedisRanking(topic);
         log.info("Topic unblocked and ranking cache evicted: topicId={}", id);
         return ApiResponse.success();
+    }
+
+    private void evictFromRedisRanking(Topic topic) {
+        try {
+            redisRankingService.removeTopic(topic.getId(), topic.getCircleId());
+        } catch (Exception e) {
+            log.warn("Redis ranking eviction failed (non-fatal): topicId={}, message={}",
+                topic.getId(), e.getMessage());
+        }
+    }
+
+    private void syncToRedisRanking(Topic topic) {
+        try {
+            double score = topic.getCurrentScore() != null ? topic.getCurrentScore().doubleValue() : 0.0;
+            redisRankingService.setScore(topic.getId(), topic.getCircleId(), score);
+        } catch (Exception e) {
+            log.warn("Redis ranking sync failed (non-fatal): topicId={}, message={}",
+                topic.getId(), e.getMessage());
+        }
     }
 
     private boolean isInvalidId(Long id) {
