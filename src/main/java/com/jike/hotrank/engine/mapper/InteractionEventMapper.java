@@ -49,6 +49,11 @@ public interface InteractionEventMapper {
      */
     List<Map<String, Object>> aggregateAllByTopic();
 
+    List<Map<String, Object>> aggregateWeightedScoreAllByTopic(@Param("likeWeight") int likeWeight,
+                                                               @Param("bookmarkWeight") int bookmarkWeight,
+                                                               @Param("shareWeight") int shareWeight,
+                                                               @Param("commentWeight") int commentWeight);
+
     /**
      * 按话题聚合指定时间段内的加权互动分（用于飙升榜）
      *
@@ -57,7 +62,11 @@ public interface InteractionEventMapper {
      * @return 聚合结果列表：topic_id, weighted_score, total_count
      */
     List<Map<String, Object>> aggregateWeightedScoreByTopic(@Param("startTime") LocalDateTime startTime,
-                                                            @Param("endTime") LocalDateTime endTime);
+                                                            @Param("endTime") LocalDateTime endTime,
+                                                            @Param("likeWeight") int likeWeight,
+                                                            @Param("bookmarkWeight") int bookmarkWeight,
+                                                            @Param("shareWeight") int shareWeight,
+                                                            @Param("commentWeight") int commentWeight);
 
     /**
      * 查询话题在指定时间段内的互动总量
@@ -78,4 +87,8 @@ public interface InteractionEventMapper {
      */
     int countDistinctUserByDevice(@Param("deviceFingerprint") String deviceFingerprint,
                                   @Param("startTime") LocalDateTime startTime);
+
+    int countByUserAndDevice(@Param("userId") Long userId,
+                             @Param("deviceFingerprint") String deviceFingerprint,
+                             @Param("startTime") LocalDateTime startTime);
 }

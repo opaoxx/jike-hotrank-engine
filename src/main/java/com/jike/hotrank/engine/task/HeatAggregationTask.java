@@ -12,107 +12,52 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * 热度聚合定时任务
- * <p>
- * 每5分钟执行一次，从互动事件表聚合数据，计算时间衰减热度分，更新话题表
- * <p>
- * 包含上榜事件触发逻辑：话题首次进入TOP10时触发通知
- *
- * @author JikeHotRank Team
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class HeatAggregationTask {
 
+    private static final int TOP_N_THRESHOLD = 10;
+
     private final InteractionEventService interactionEventService;
     private final TopicService topicService;
 
-    /** 上榜事件触发阈值（TOP N） */
-    private static final int TOP_N_THRESHOLD = 10;
-
-    /**
-     * 热度聚合任务
-     * <p>
-     * 执行频率：每5分钟（300000毫秒）
-     * <p>
-     * 执行逻辑：
-     * 1. 查询全部有效互动事件
-     * 2. 按话题聚合，计算各类型互动次数
-     * 3. 使用时间衰减算法全量重算热度分
-     * 4. 更新话题表的热度分和互动次数
-     * 5. 检测上榜事件并触发通知
-     */
-    @Scheduled(fixedRate = 300000)  // 5分钟 = 300000毫秒
+    @Scheduled(fixedRate = 300000)
     public void aggregateHeat() {
         LocalDateTime endTime = LocalDateTime.now();
         LocalDateTime startTime = endTime.minusMinutes(5);
 
-        log.info("开始执行热度聚合任务：startTime={}, endTime={}", startTime, endTime);
+        log.info("Start heat aggregation: startTime={}, endTime={}", startTime, endTime);
 
         try {
-            // 1. 查询聚合前的TOP N话题ID（用于上榜事件检测）
             Set<Long> previousTopTopicIds = getTopTopicIds(TOP_N_THRESHOLD);
-
-            // 2. 查询全部互动事件聚合数据。全量重算能避免把已衰减后的currentScore当作原始互动分重复累加。
-            List<Map<String, Object>> aggregationData = interactionEventService.aggregateAllByTopic();
+            List<Map<String, Object>> aggregationData = interactionEventService.aggregateWeightedScoreAllByTopic();
 
             if (aggregationData == null || aggregationData.isEmpty()) {
-                log.info("热度聚合任务完成：无新互动事件");
+                log.info("Heat aggregation finished: no interaction events");
                 return;
             }
 
-            // 3. 按话题ID分组聚合
-            Map<Long, Map<Integer, Long>> topicInteractionMap = new HashMap<>();
+            List<Topic> topicsToUpdate = new ArrayList<>();
             for (Map<String, Object> row : aggregationData) {
                 Long topicId = getRequiredLong(row, "topic_id", "topicId");
-                Integer interactionType = getRequiredLong(row, "interaction_type", "interactionType").intValue();
-                Long count = getRequiredLong(row, "total_count", "totalCount");
+                BigDecimal weightedScore = getRequiredDecimal(row, "weighted_score", "weightedScore");
+                int totalInteractionCount = getRequiredLong(row, "total_count", "totalCount").intValue();
 
-                topicInteractionMap
-                    .computeIfAbsent(topicId, k -> new HashMap<>())
-                    .put(interactionType, count);
-            }
-
-            // 4. 计算每个话题的新热度分
-            List<Topic> topicsToUpdate = new ArrayList<>();
-            for (Map.Entry<Long, Map<Integer, Long>> entry : topicInteractionMap.entrySet()) {
-                Long topicId = entry.getKey();
-                Map<Integer, Long> interactionCounts = entry.getValue();
-
-                // 查询话题信息
                 Topic topic = topicService.getById(topicId);
-                if (topic == null || topic.getStatus() != 1) {
-                    log.warn("话题不存在或已屏蔽，跳过：topicId={}", topicId);
+                if (topic == null || topic.getStatus() == null || topic.getStatus() != 1) {
+                    log.warn("Skip missing or inactive topic: topicId={}", topicId);
                     continue;
                 }
 
-                // 计算互动分
-                long totalInteractionScore = 0;
-                int totalInteractionCount = 0;
-                for (Map.Entry<Integer, Long> interactionEntry : interactionCounts.entrySet()) {
-                    int type = interactionEntry.getKey();
-                    long count = interactionEntry.getValue();
-                    int weight = HeatScoreCalculator.getWeight(type);
-                    totalInteractionScore += count * weight;
-                    totalInteractionCount += count;
-                }
+                BigDecimal newScore = HeatScoreCalculator.calculateScore(weightedScore, topic.getPublishTime());
 
-                // 使用时间衰减算法计算热度分
-                BigDecimal newScore = HeatScoreCalculator.calculateScore(
-                    totalInteractionScore,
-                    topic.getPublishTime()
-                );
-
-                // 准备更新数据
                 Topic updateTopic = new Topic();
                 updateTopic.setId(topicId);
                 updateTopic.setCurrentScore(newScore);
@@ -120,26 +65,16 @@ public class HeatAggregationTask {
                 topicsToUpdate.add(updateTopic);
             }
 
-            // 5. 批量更新话题热度分
             if (!topicsToUpdate.isEmpty()) {
                 topicService.batchUpdateScore(topicsToUpdate);
-                log.info("热度聚合任务完成：更新话题数量={}", topicsToUpdate.size());
-
-                // 6. 检测上榜事件
+                log.info("Heat aggregation finished: updatedTopics={}", topicsToUpdate.size());
                 checkTopNEvent(previousTopTopicIds, TOP_N_THRESHOLD);
             }
-
         } catch (Exception e) {
-            log.error("热度聚合任务执行失败", e);
+            log.error("Heat aggregation failed", e);
         }
     }
 
-    /**
-     * 获取当前TOP N话题ID集合
-     *
-     * @param n 数量
-     * @return 话题ID集合
-     */
     private Set<Long> getTopTopicIds(int n) {
         List<Topic> topTopics = topicService.getGlobalHotRank(n);
         return topTopics.stream()
@@ -147,39 +82,22 @@ public class HeatAggregationTask {
             .collect(Collectors.toSet());
     }
 
-    /**
-     * 检测上榜事件
-     * <p>
-     * 话题首次进入TOP N时触发通知（模拟）
-     *
-     * @param previousTopIds 之前TOP N的话题ID集合
-     * @param n TOP N阈值
-     */
     private void checkTopNEvent(Set<Long> previousTopIds, int n) {
         Set<Long> currentTopIds = getTopTopicIds(n);
-
-        // 找出新上榜的话题
         Set<Long> newTopIds = new HashSet<>(currentTopIds);
         newTopIds.removeAll(previousTopIds);
 
-        if (!newTopIds.isEmpty()) {
-            for (Long topicId : newTopIds) {
-                Topic topic = topicService.getById(topicId);
-                if (topic != null) {
-                    publishTopNAlert(n, topic);
-                }
+        for (Long topicId : newTopIds) {
+            Topic topic = topicService.getById(topicId);
+            if (topic != null) {
+                publishTopNAlert(n, topic);
             }
         }
     }
 
-    /**
-     * 发布上榜通知事件。
-     * <p>
-     * 当前项目未引入消息队列，先用结构化日志承载通知事件，后续接入MQ时只需要替换本方法实现。
-     */
     private void publishTopNAlert(int threshold, Topic topic) {
-        log.info("【上榜事件触发】话题首次进入TOP{}：topicId={}, title={}, score={}",
-                 threshold, topic.getId(), topic.getTitle(), topic.getCurrentScore());
+        log.info("Topic entered TOP{}: topicId={}, title={}, score={}",
+            threshold, topic.getId(), topic.getTitle(), topic.getCurrentScore());
     }
 
     private Long getRequiredLong(Map<String, Object> row, String snakeCaseKey, String camelCaseKey) {
@@ -188,8 +106,22 @@ public class HeatAggregationTask {
             value = row.get(camelCaseKey);
         }
         if (!(value instanceof Number number)) {
-            throw new IllegalStateException("聚合结果缺少数值字段：" + snakeCaseKey);
+            throw new IllegalStateException("Aggregation result missing numeric field: " + snakeCaseKey);
         }
         return number.longValue();
+    }
+
+    private BigDecimal getRequiredDecimal(Map<String, Object> row, String snakeCaseKey, String camelCaseKey) {
+        Object value = row.get(snakeCaseKey);
+        if (value == null) {
+            value = row.get(camelCaseKey);
+        }
+        if (value instanceof BigDecimal decimal) {
+            return decimal;
+        }
+        if (value instanceof Number number) {
+            return BigDecimal.valueOf(number.doubleValue());
+        }
+        throw new IllegalStateException("Aggregation result missing numeric field: " + snakeCaseKey);
     }
 }

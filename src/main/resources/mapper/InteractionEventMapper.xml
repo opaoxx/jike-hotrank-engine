@@ -10,21 +10,22 @@
         <result property="interactionType" column="interaction_type"/>
         <result property="deviceFingerprint" column="device_fingerprint"/>
         <result property="ipAddress" column="ip_address"/>
+        <result property="weightMultiplier" column="weight_multiplier"/>
         <result property="createdAt" column="created_at"/>
     </resultMap>
 
     <!-- 插入互动事件 -->
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO interaction_event (topic_id, user_id, interaction_type, device_fingerprint, ip_address)
-        VALUES (#{topicId}, #{userId}, #{interactionType}, #{deviceFingerprint}, #{ipAddress})
+        INSERT INTO interaction_event (topic_id, user_id, interaction_type, device_fingerprint, ip_address, weight_multiplier)
+        VALUES (#{topicId}, #{userId}, #{interactionType}, #{deviceFingerprint}, #{ipAddress}, #{weightMultiplier})
     </insert>
 
     <!-- 批量插入互动事件 -->
     <insert id="batchInsert">
-        INSERT INTO interaction_event (topic_id, user_id, interaction_type, device_fingerprint, ip_address)
+        INSERT INTO interaction_event (topic_id, user_id, interaction_type, device_fingerprint, ip_address, weight_multiplier)
         VALUES
         <foreach collection="list" item="item" separator=",">
-            (#{item.topicId}, #{item.userId}, #{item.interactionType}, #{item.deviceFingerprint}, #{item.ipAddress})
+            (#{item.topicId}, #{item.userId}, #{item.interactionType}, #{item.deviceFingerprint}, #{item.ipAddress}, #{item.weightMultiplier})
         </foreach>
     </insert>
 
@@ -52,16 +53,30 @@
         GROUP BY topic_id, interaction_type
     </select>
 
+    <select id="aggregateWeightedScoreAllByTopic" resultType="java.util.Map">
+        SELECT topic_id,
+               SUM(CASE interaction_type
+                       WHEN 1 THEN #{likeWeight}
+                       WHEN 2 THEN #{bookmarkWeight}
+                       WHEN 3 THEN #{shareWeight}
+                       WHEN 5 THEN #{commentWeight}
+                       ELSE 0
+                   END * COALESCE(weight_multiplier, 1.0)) AS weighted_score,
+               COUNT(*) AS total_count
+        FROM interaction_event
+        GROUP BY topic_id
+    </select>
+
     <!-- 按话题聚合指定时间段内的加权互动分（用于飙升榜） -->
     <select id="aggregateWeightedScoreByTopic" resultType="java.util.Map">
         SELECT topic_id,
                SUM(CASE interaction_type
-                       WHEN 1 THEN 1
-                       WHEN 2 THEN 2
-                       WHEN 3 THEN 3
-                       WHEN 5 THEN 5
+                       WHEN 1 THEN #{likeWeight}
+                       WHEN 2 THEN #{bookmarkWeight}
+                       WHEN 3 THEN #{shareWeight}
+                       WHEN 5 THEN #{commentWeight}
                        ELSE 0
-                   END) AS weighted_score,
+                   END * COALESCE(weight_multiplier, 1.0)) AS weighted_score,
                COUNT(*) AS total_count
         FROM interaction_event
         WHERE created_at &gt;= #{startTime}
@@ -83,6 +98,14 @@
         SELECT COUNT(DISTINCT user_id)
         FROM interaction_event
         WHERE device_fingerprint = #{deviceFingerprint}
+          AND created_at &gt;= #{startTime}
+    </select>
+
+    <select id="countByUserAndDevice" resultType="int">
+        SELECT COUNT(*)
+        FROM interaction_event
+        WHERE user_id = #{userId}
+          AND device_fingerprint = #{deviceFingerprint}
           AND created_at &gt;= #{startTime}
     </select>
 

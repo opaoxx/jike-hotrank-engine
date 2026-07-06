@@ -118,7 +118,7 @@ public class RankingService {
             interactionEventService.aggregateWeightedScoreByTopic(twoHoursAgo, oneHourAgo));
 
         List<Topic> topics = currentStats.entrySet().stream()
-            .filter(entry -> entry.getValue().weightedScore() > 0)
+            .filter(entry -> entry.getValue().weightedScore().compareTo(BigDecimal.ZERO) > 0)
             .map(entry -> toSurgingTopic(entry.getKey(), entry.getValue(), previousStats.get(entry.getKey())))
             .filter(Objects::nonNull)
             .sorted(Comparator
@@ -226,7 +226,7 @@ public class RankingService {
         }
         for (Map<String, Object> row : rows) {
             Long topicId = getLong(row, "topic_id", "topicId");
-            long weightedScore = getLong(row, "weighted_score", "weightedScore");
+            BigDecimal weightedScore = getDecimal(row, "weighted_score", "weightedScore");
             int totalCount = getLong(row, "total_count", "totalCount").intValue();
             result.put(topicId, new InteractionWindowStats(weightedScore, totalCount));
         }
@@ -239,10 +239,10 @@ public class RankingService {
             return null;
         }
 
-        long previousScore = previous != null ? previous.weightedScore() : 0;
-        double surgeScore = previousScore <= 0
+        BigDecimal previousScore = previous != null ? previous.weightedScore() : BigDecimal.ZERO;
+        BigDecimal surgeScore = previousScore.compareTo(BigDecimal.ZERO) <= 0
             ? current.weightedScore()
-            : (double) current.weightedScore() / previousScore;
+            : current.weightedScore().divide(previousScore, 4, RoundingMode.HALF_UP);
 
         Topic surgingTopic = new Topic();
         surgingTopic.setId(topic.getId());
@@ -251,7 +251,7 @@ public class RankingService {
         surgingTopic.setAuthorId(topic.getAuthorId());
         surgingTopic.setPublishTime(topic.getPublishTime());
         surgingTopic.setInteractionCount(current.totalCount());
-        surgingTopic.setCurrentScore(BigDecimal.valueOf(surgeScore).setScale(4, RoundingMode.HALF_UP));
+        surgingTopic.setCurrentScore(surgeScore.setScale(4, RoundingMode.HALF_UP));
         return surgingTopic;
     }
 
@@ -266,6 +266,20 @@ public class RankingService {
         return number.longValue();
     }
 
-    private record InteractionWindowStats(long weightedScore, int totalCount) {
+    private BigDecimal getDecimal(Map<String, Object> row, String snakeCaseKey, String camelCaseKey) {
+        Object value = row.get(snakeCaseKey);
+        if (value == null) {
+            value = row.get(camelCaseKey);
+        }
+        if (value instanceof BigDecimal decimal) {
+            return decimal;
+        }
+        if (value instanceof Number number) {
+            return BigDecimal.valueOf(number.doubleValue());
+        }
+        throw new IllegalStateException("鑱氬悎缁撴灉缂哄皯鏁板€煎瓧娈碉細" + snakeCaseKey);
+    }
+
+    private record InteractionWindowStats(BigDecimal weightedScore, int totalCount) {
     }
 }

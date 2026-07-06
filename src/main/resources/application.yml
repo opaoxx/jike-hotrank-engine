@@ -1,4 +1,3 @@
-# ==================== 应用基础配置 ====================
 spring:
   application:
     name: jike-hotrank-engine
@@ -15,7 +14,6 @@ spring:
 server:
   port: 8080
 
-# ==================== MyBatis配置 ====================
 mybatis:
   mapper-locations: classpath:mapper/*.xml
   type-aliases-package: com.jike.hotrank.engine.entity
@@ -23,7 +21,6 @@ mybatis:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
-# ==================== 日志配置 ====================
 logging:
   level:
     com.jike.hotrank.engine: info
@@ -34,6 +31,30 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
 
-# ==================== 定时任务配置 ====================
-# 热度聚合任务：每5分钟执行
-# 热度快照任务：每小时执行
+jike-hotrank:
+  scheduling:
+    enabled: true
+  heat:
+    weights:
+      like: 1
+      bookmark: 2
+      share: 3
+      comment: 5
+  anti-spam:
+    frequency:
+      enabled: true
+      window-hours: 24
+      max-interactions: 50
+    device:
+      enabled: true
+      window-hours: 24
+      first-penalty-user-threshold: 3
+      second-penalty-user-threshold: 5
+      first-penalty-multiplier: 0.5
+      second-penalty-multiplier: 0.3
+    surge:
+      enabled: true
+      current-window-hours: 1
+      history-window-hours: 24
+      multiplier-threshold: 10
+      minimum-current-count: 10

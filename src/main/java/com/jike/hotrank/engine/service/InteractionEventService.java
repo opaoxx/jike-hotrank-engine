@@ -1,11 +1,13 @@
 package com.jike.hotrank.engine.service;
 
+import com.jike.hotrank.engine.config.HotRankProperties;
 import com.jike.hotrank.engine.entity.InteractionEvent;
 import com.jike.hotrank.engine.mapper.InteractionEventMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +24,7 @@ import java.util.Map;
 public class InteractionEventService {
 
     private final InteractionEventMapper interactionEventMapper;
+    private final HotRankProperties hotRankProperties;
 
     /**
      * 记录互动事件
@@ -30,6 +33,9 @@ public class InteractionEventService {
      * @return 创建后的事件（包含生成的ID）
      */
     public InteractionEvent record(InteractionEvent event) {
+        if (event.getWeightMultiplier() == null) {
+            event.setWeightMultiplier(BigDecimal.ONE);
+        }
         event.setCreatedAt(LocalDateTime.now());
         interactionEventMapper.insert(event);
         log.debug("记录互动事件：topicId={}, userId={}, type={}",
@@ -48,7 +54,12 @@ public class InteractionEventService {
             return 0;
         }
         LocalDateTime now = LocalDateTime.now();
-        events.forEach(e -> e.setCreatedAt(now));
+        events.forEach(e -> {
+            e.setCreatedAt(now);
+            if (e.getWeightMultiplier() == null) {
+                e.setWeightMultiplier(BigDecimal.ONE);
+            }
+        });
         int rows = interactionEventMapper.batchInsert(events);
         log.info("批量记录互动事件：count={}", events.size());
         return rows;
@@ -62,7 +73,8 @@ public class InteractionEventService {
      * @return 互动次数
      */
     public int countByUserAndTopic(Long userId, Long topicId) {
-        LocalDateTime startTime = LocalDateTime.now().minusHours(24);
+        int windowHours = hotRankProperties.getAntiSpam().getFrequency().getWindowHours();
+        LocalDateTime startTime = LocalDateTime.now().minusHours(windowHours);
         return interactionEventMapper.countByUserAndTopic(userId, topicId, startTime);
     }
 
@@ -86,6 +98,16 @@ public class InteractionEventService {
         return interactionEventMapper.aggregateAllByTopic();
     }
 
+    public List<Map<String, Object>> aggregateWeightedScoreAllByTopic() {
+        HotRankProperties.Heat.Weights weights = hotRankProperties.getHeat().getWeights();
+        return interactionEventMapper.aggregateWeightedScoreAllByTopic(
+            weights.getLike(),
+            weights.getBookmark(),
+            weights.getShare(),
+            weights.getComment()
+        );
+    }
+
     /**
      * 按话题聚合指定时间段内的加权互动分（用于飙升榜）
      *
@@ -94,7 +116,15 @@ public class InteractionEventService {
      * @return 聚合结果列表
      */
     public List<Map<String, Object>> aggregateWeightedScoreByTopic(LocalDateTime startTime, LocalDateTime endTime) {
-        return interactionEventMapper.aggregateWeightedScoreByTopic(startTime, endTime);
+        HotRankProperties.Heat.Weights weights = hotRankProperties.getHeat().getWeights();
+        return interactionEventMapper.aggregateWeightedScoreByTopic(
+            startTime,
+            endTime,
+            weights.getLike(),
+            weights.getBookmark(),
+            weights.getShare(),
+            weights.getComment()
+        );
     }
 
     /**
@@ -116,7 +146,14 @@ public class InteractionEventService {
      * @return 不同用户数量
      */
     public int countDistinctUserByDevice(String deviceFingerprint) {
-        LocalDateTime startTime = LocalDateTime.now().minusHours(24);
+        int windowHours = hotRankProperties.getAntiSpam().getDevice().getWindowHours();
+        LocalDateTime startTime = LocalDateTime.now().minusHours(windowHours);
         return interactionEventMapper.countDistinctUserByDevice(deviceFingerprint, startTime);
+    }
+
+    public boolean hasUserUsedDevice(Long userId, String deviceFingerprint) {
+        int windowHours = hotRankProperties.getAntiSpam().getDevice().getWindowHours();
+        LocalDateTime startTime = LocalDateTime.now().minusHours(windowHours);
+        return interactionEventMapper.countByUserAndDevice(userId, deviceFingerprint, startTime) > 0;
     }
 }

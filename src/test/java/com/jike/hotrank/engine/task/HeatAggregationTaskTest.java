@@ -36,7 +36,7 @@ class HeatAggregationTaskTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    void shouldRecalculateHeatFromAllInteractionsWithoutAddingExistingScore() {
+    void shouldRecalculateHeatFromWeightedInteractionsWithoutAddingExistingScore() {
         Topic topic = new Topic();
         topic.setId(1L);
         topic.setStatus(1);
@@ -45,9 +45,8 @@ class HeatAggregationTaskTest {
         topic.setInteractionCount(100);
 
         when(topicService.getGlobalHotRank(anyInt())).thenReturn(List.of());
-        when(interactionEventService.aggregateAllByTopic()).thenReturn(List.of(
-            Map.of("topic_id", 1L, "interaction_type", 1, "total_count", 4L),
-            Map.of("topic_id", 1L, "interaction_type", 5, "total_count", 2L)
+        when(interactionEventService.aggregateWeightedScoreAllByTopic()).thenReturn(List.of(
+            Map.of("topic_id", 1L, "weighted_score", new BigDecimal("14.0"), "total_count", 6L)
         ));
         when(topicService.getById(1L)).thenReturn(topic);
 
@@ -60,7 +59,7 @@ class HeatAggregationTaskTest {
         assertEquals(1L, updated.getId());
         assertEquals(6, updated.getInteractionCount());
         assertTrue(updated.getCurrentScore().compareTo(BigDecimal.TEN) < 0,
-            "全量重算应只使用本次聚合出的加权互动分，不应叠加旧currentScore");
-        verify(interactionEventService, never()).aggregateByTopic(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+            "Heat should be recalculated from weighted interaction score only, not existing currentScore.");
+        verify(interactionEventService, never()).aggregateAllByTopic();
     }
 }

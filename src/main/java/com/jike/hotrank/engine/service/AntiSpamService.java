@@ -1,139 +1,136 @@
 package com.jike.hotrank.engine.service;
 
+import com.jike.hotrank.engine.config.HotRankProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-/**
- * 防刷服务类
- * <p>
- * 提供三种防刷机制：
- * 1. 滑动窗口频率限制：同一用户对同一话题24小时内有效互动上限
- * 2. 设备指纹聚合检测：相同设备指纹的多个账号互动不叠加计算
- * 3. 异常突增检测：某话题1小时内互动量超过历史均值10倍，自动触发待审核标记
- *
- * @author JikeHotRank Team
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AntiSpamService {
 
+    private static final String RATE_LIMIT_REASON = "rate_limit";
+    private static final String DEVICE_PENALTY_REASON = "device_fingerprint_penalty";
+    private static final String ALLOW_REASON = "allow";
+
     private final InteractionEventService interactionEventService;
     private final TopicService topicService;
+    private final HotRankProperties hotRankProperties;
 
-    /** 用户对同一话题24小时内最大互动次数 */
-    private static final int MAX_INTERACTIONS_PER_TOPIC_24H = 10;
-
-    /** 设备指纹关联用户数阈值（超过此值视为异常） */
-    private static final int DEVICE_USER_THRESHOLD = 5;
-
-    /** 异常突增倍数阈值 */
-    private static final int ANOMALY_SPIKE_MULTIPLIER = 10;
-
-    /**
-     * 检查互动是否有效（防刷校验）
-     *
-     * @param userId 用户ID
-     * @param topicId 话题ID
-     * @param deviceFingerprint 设备指纹
-     * @return 校验结果：true-有效，false-被拦截
-     */
-    public boolean checkInteraction(Long userId, Long topicId, String deviceFingerprint) {
-        // 1. 滑动窗口频率限制
+    public CheckResult checkInteraction(Long userId, Long topicId, String deviceFingerprint) {
         if (!checkFrequencyLimit(userId, topicId)) {
-            log.warn("互动被拦截-频率超限：userId={}, topicId={}", userId, topicId);
-            return false;
+            log.warn("Interaction rejected by rate limit: userId={}, topicId={}", userId, topicId);
+            return CheckResult.deny(RATE_LIMIT_REASON);
         }
 
-        // 2. 设备指纹聚合检测
-        if (deviceFingerprint != null && !checkDeviceFingerprint(deviceFingerprint)) {
-            log.warn("互动被拦截-设备指纹异常：userId={}, deviceFingerprint={}", userId, deviceFingerprint);
-            return false;
+        DevicePenaltyResult devicePenalty = detectDevicePenalty(userId, deviceFingerprint);
+        if (devicePenalty.hasPenalty()) {
+            log.warn("Interaction allowed with device penalty: userId={}, topicId={}, device={}, users={}, multiplier={}",
+                userId, topicId, deviceFingerprint, devicePenalty.distinctUserCount(), devicePenalty.multiplier());
+            return CheckResult.allow(devicePenalty.multiplier(), DEVICE_PENALTY_REASON);
         }
 
-        return true;
+        return CheckResult.allow(BigDecimal.ONE, ALLOW_REASON);
     }
 
-    /**
-     * 滑动窗口频率限制检查
-     * <p>
-     * 同一用户对同一话题24小时内有效互动上限
-     *
-     * @param userId 用户ID
-     * @param topicId 话题ID
-     * @return true-未超限，false-已超限
-     */
     public boolean checkFrequencyLimit(Long userId, Long topicId) {
-        int count = interactionEventService.countByUserAndTopic(userId, topicId);
-        boolean isValid = count < MAX_INTERACTIONS_PER_TOPIC_24H;
-
-        if (!isValid) {
-            log.info("频率限制触发：userId={}, topicId={}, 24h内互动次数={}", userId, topicId, count);
-        }
-
-        return isValid;
-    }
-
-    /**
-     * 设备指纹聚合检测
-     * <p>
-     * 相同设备指纹的多个账号互动不叠加计算
-     * 如果同一设备指纹关联的用户数超过阈值，视为异常
-     *
-     * @param deviceFingerprint 设备指纹
-     * @return true-正常，false-异常
-     */
-    public boolean checkDeviceFingerprint(String deviceFingerprint) {
-        if (deviceFingerprint == null || deviceFingerprint.isEmpty()) {
+        HotRankProperties.AntiSpam.Frequency frequency = hotRankProperties.getAntiSpam().getFrequency();
+        if (!frequency.isEnabled()) {
             return true;
         }
 
-        int distinctUserCount = interactionEventService.countDistinctUserByDevice(deviceFingerprint);
-        boolean isNormal = distinctUserCount < DEVICE_USER_THRESHOLD;
+        int count = interactionEventService.countByUserAndTopic(userId, topicId);
+        boolean allowed = count < frequency.getMaxInteractions();
 
-        if (!isNormal) {
-            log.info("设备指纹异常：deviceFingerprint={}, 关联用户数={}", deviceFingerprint, distinctUserCount);
+        if (!allowed) {
+            log.info("Rate limit triggered: userId={}, topicId={}, count={}, limit={}",
+                userId, topicId, count, frequency.getMaxInteractions());
         }
 
-        return isNormal;
+        return allowed;
     }
 
-    /**
-     * 检测话题互动异常突增
-     * <p>
-     * 某话题1小时内互动量超过历史均值10倍，自动触发待审核标记
-     *
-     * @param topicId 话题ID
-     * @return true-正常，false-存在异常突增
-     */
+    public boolean checkDeviceFingerprint(String deviceFingerprint) {
+        return !detectDevicePenalty(null, deviceFingerprint).hasPenalty();
+    }
+
+    public DevicePenaltyResult detectDevicePenalty(Long userId, String deviceFingerprint) {
+        HotRankProperties.AntiSpam.Device device = hotRankProperties.getAntiSpam().getDevice();
+        if (!device.isEnabled() || deviceFingerprint == null || deviceFingerprint.isBlank()) {
+            return DevicePenaltyResult.none(0);
+        }
+
+        int distinctUserCount = interactionEventService.countDistinctUserByDevice(deviceFingerprint);
+        if (userId != null && !interactionEventService.hasUserUsedDevice(userId, deviceFingerprint)) {
+            distinctUserCount++;
+        }
+        if (distinctUserCount >= device.getSecondPenaltyUserThreshold()) {
+            return new DevicePenaltyResult(device.getSecondPenaltyMultiplier(), distinctUserCount);
+        }
+        if (distinctUserCount >= device.getFirstPenaltyUserThreshold()) {
+            return new DevicePenaltyResult(device.getFirstPenaltyMultiplier(), distinctUserCount);
+        }
+        return DevicePenaltyResult.none(distinctUserCount);
+    }
+
     public boolean checkAnomalySpike(Long topicId) {
+        HotRankProperties.AntiSpam.Surge surge = hotRankProperties.getAntiSpam().getSurge();
+        if (!surge.isEnabled()) {
+            return true;
+        }
+
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime oneHourAgo = now.minusHours(1);
-        LocalDateTime twentyFourHoursAgo = now.minusHours(24);
+        LocalDateTime currentStart = now.minusHours(surge.getCurrentWindowHours());
+        LocalDateTime historyStart = now.minusHours(surge.getHistoryWindowHours());
 
-        // 查询最近1小时互动量
-        int recentCount = interactionEventService.countByTopicAndTimeRange(topicId, oneHourAgo, now);
+        int recentCount = interactionEventService.countByTopicAndTimeRange(topicId, currentStart, now);
+        if (recentCount < surge.getMinimumCurrentCount()) {
+            return true;
+        }
 
-        // 查询过去24小时平均互动量（每小时）
-        int totalCount24h = interactionEventService.countByTopicAndTimeRange(topicId, twentyFourHoursAgo, now);
-        double avgHourlyCount = totalCount24h / 24.0;
+        int historyCount = interactionEventService.countByTopicAndTimeRange(topicId, historyStart, currentStart);
+        double historyHours = Math.max(
+            1.0,
+            surge.getHistoryWindowHours() - surge.getCurrentWindowHours()
+        );
+        double avgHourlyCount = historyCount / historyHours;
+        if (avgHourlyCount <= 0) {
+            return true;
+        }
 
-        // 如果平均值为0，使用阈值10
-        double threshold = Math.max(avgHourlyCount * ANOMALY_SPIKE_MULTIPLIER, 10);
-
-        boolean isNormal = recentCount <= threshold;
+        double ratio = recentCount / avgHourlyCount;
+        boolean isNormal = ratio <= surge.getMultiplierThreshold();
 
         if (!isNormal) {
-            log.warn("检测到话题互动异常突增：topicId={}, 最近1小时互动量={}, 24小时平均={}, 阈值={}",
-                     topicId, recentCount, avgHourlyCount, threshold);
-
-            // 标记话题为待审核
+            log.warn("Topic surge detected: topicId={}, recentCount={}, avgHourlyCount={}, ratio={}, threshold={}",
+                topicId, recentCount, avgHourlyCount, ratio, surge.getMultiplierThreshold());
             topicService.markForReview(topicId);
         }
 
         return isNormal;
+    }
+
+    public record CheckResult(boolean allowed, BigDecimal weightMultiplier, String reason) {
+        public static CheckResult allow(BigDecimal weightMultiplier, String reason) {
+            return new CheckResult(true, weightMultiplier, reason);
+        }
+
+        public static CheckResult deny(String reason) {
+            return new CheckResult(false, BigDecimal.ZERO, reason);
+        }
+    }
+
+    public record DevicePenaltyResult(BigDecimal multiplier, int distinctUserCount) {
+        public static DevicePenaltyResult none(int distinctUserCount) {
+            return new DevicePenaltyResult(BigDecimal.ONE, distinctUserCount);
+        }
+
+        public boolean hasPenalty() {
+            return multiplier.compareTo(BigDecimal.ONE) < 0;
+        }
     }
 }
