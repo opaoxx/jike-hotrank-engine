@@ -14,15 +14,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.function.Supplier;
 
-/**
- * 榜单查询控制器
- * 提供四类榜单查询接口：全站热榜、圈子热榜、新星榜、飙升榜
- * 支持个性化榜单
- * <p>
- * 集成JVM本地缓存，5秒TTL
- *
- * @author JikeHotRank Team
- */
 @Slf4j
 @RestController
 @RequestMapping("/api/ranking")
@@ -32,111 +23,55 @@ public class RankingController {
     private final RankingService rankingService;
     private final RankingCacheManager cacheManager;
 
-    /**
-     * 查询全站热榜
-     * <p>
-     * 返回全局TOP50话题，按热度分降序排列
-     *
-     * @param limit 返回数量限制（可选，默认50）
-     * @return 全站热榜
-     */
     @GetMapping("/global")
-    public ApiResponse<RankingResponseDTO> getGlobalRanking(
-            @RequestParam(required = false) Integer limit) {
-        log.info("查询全站热榜：limit={}", limit);
-
-        // 尝试从缓存获取
+    public ApiResponse<RankingResponseDTO> getGlobalRanking(@RequestParam(required = false) Integer limit) {
+        log.info("Query global ranking: limit={}", limit);
         String cacheKey = RankingCacheManager.globalRankKey(limit);
         return getCachedRanking(cacheKey, () -> rankingService.getGlobalRanking(limit));
     }
 
-    /**
-     * 查询圈子热榜
-     * <p>
-     * 返回指定圈子的TOP20话题，按热度分降序排列
-     *
-     * @param circleId 圈子ID
-     * @param limit 返回数量限制（可选，默认20）
-     * @return 圈子热榜
-     */
     @GetMapping("/circle/{circleId}")
     public ApiResponse<RankingResponseDTO> getCircleRanking(
             @PathVariable Long circleId,
             @RequestParam(required = false) Integer limit) {
-        log.info("查询圈子热榜：circleId={}, limit={}", circleId, limit);
+        log.info("Query circle ranking: circleId={}, limit={}", circleId, limit);
 
         if (circleId == null || circleId <= 0) {
             return ApiResponse.error(400, "圈子ID无效");
         }
 
-        // 尝试从缓存获取
         String cacheKey = RankingCacheManager.circleRankKey(circleId, limit);
         return getCachedRanking(cacheKey, () -> rankingService.getCircleRanking(circleId, limit));
     }
 
-    /**
-     * 查询新星榜
-     * <p>
-     * 返回24小时内发布的热门话题TOP10
-     *
-     * @param limit 返回数量限制（可选，默认10）
-     * @return 新星榜
-     */
     @GetMapping("/newcomer")
-    public ApiResponse<RankingResponseDTO> getNewcomerRanking(
-            @RequestParam(required = false) Integer limit) {
-        log.info("查询新星榜：limit={}", limit);
-
-        // 尝试从缓存获取
+    public ApiResponse<RankingResponseDTO> getNewcomerRanking(@RequestParam(required = false) Integer limit) {
+        log.info("Query newcomer ranking: limit={}", limit);
         String cacheKey = RankingCacheManager.newcomerRankKey(limit);
         return getCachedRanking(cacheKey, () -> rankingService.getNewcomerRanking(limit));
     }
 
-    /**
-     * 查询飙升榜
-     * <p>
-     * 返回近1小时热度增速最快的话题TOP10
-     *
-     * @param limit 返回数量限制（可选，默认10）
-     * @return 飙升榜
-     */
     @GetMapping("/surging")
-    public ApiResponse<RankingResponseDTO> getSurgingRanking(
-            @RequestParam(required = false) Integer limit) {
-        log.info("查询飙升榜：limit={}", limit);
-
-        // 尝试从缓存获取
+    public ApiResponse<RankingResponseDTO> getSurgingRanking(@RequestParam(required = false) Integer limit) {
+        log.info("Query surging ranking: limit={}", limit);
         String cacheKey = RankingCacheManager.surgingRankKey(limit);
         return getCachedRanking(cacheKey, () -> rankingService.getSurgingRanking(limit));
     }
 
-    /**
-     * 查询个性化热榜
-     * <p>
-     * 根据用户的圈子偏好权重对榜单进行重排
-     *
-     * @param userId 用户ID
-     * @param limit 返回数量限制（可选，默认50）
-     * @return 个性化热榜
-     */
     @GetMapping("/personalized")
     public ApiResponse<RankingResponseDTO> getPersonalizedRanking(
             @RequestParam Long userId,
             @RequestParam(required = false) Integer limit) {
-        log.info("查询个性化热榜：userId={}, limit={}", userId, limit);
+        log.info("Query personalized ranking: userId={}, limit={}", userId, limit);
 
         if (userId == null || userId <= 0) {
             return ApiResponse.error(400, "用户ID无效");
         }
 
-        // 个性化榜单不缓存（每个用户不同）
-        RankingResponseDTO response = rankingService.getPersonalizedGlobalRanking(userId, limit);
-        return ApiResponse.success(response);
+        String cacheKey = RankingCacheManager.personalizedRankKey(userId, limit);
+        return getCachedRanking(cacheKey, () -> rankingService.getPersonalizedGlobalRanking(userId, limit));
     }
 
-    /**
-     * 查询缓存；缓存未命中时执行查询并写回。可正确处理空值缓存。
-     */
     private ApiResponse<RankingResponseDTO> getCachedRanking(String cacheKey, Supplier<RankingResponseDTO> loader) {
         RankingCacheManager.CacheResult cached = cacheManager.getResult(cacheKey);
         if (cached.hit()) {

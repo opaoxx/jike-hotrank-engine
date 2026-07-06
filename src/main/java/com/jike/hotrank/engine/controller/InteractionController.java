@@ -1,5 +1,6 @@
 package com.jike.hotrank.engine.controller;
 
+import com.jike.hotrank.engine.cache.RankingCacheManager;
 import com.jike.hotrank.engine.dto.ApiResponse;
 import com.jike.hotrank.engine.entity.InteractionEvent;
 import com.jike.hotrank.engine.entity.Topic;
@@ -26,6 +27,7 @@ public class InteractionController {
     private final UserBehaviorService userBehaviorService;
     private final TopicService topicService;
     private final UserCirclePreferenceService userCirclePreferenceService;
+    private final RankingCacheManager cacheManager;
 
     @PostMapping
     public ApiResponse<InteractionEvent> recordInteraction(@RequestBody InteractionEvent event) {
@@ -79,6 +81,7 @@ public class InteractionController {
 
         try {
             userCirclePreferenceService.updatePreference(event.getUserId(), topic.getCircleId());
+            cacheManager.evictByPrefix(RankingCacheManager.personalizedRankPrefix(event.getUserId()));
         } catch (Exception e) {
             log.warn("Failed to update user circle preference: userId={}, circleId={}",
                 event.getUserId(), topic.getCircleId(), e);

@@ -179,7 +179,7 @@ public class RankingService {
 
         List<RankingItemDTO> items = convertToRankingItems(personalizedTopics, null);
         log.info("查询个性化热榜：userId={}, size={}", userId, items.size());
-        return RankingResponseDTO.ofGlobal(items);
+        return RankingResponseDTO.ofPersonalized(userId, items);
     }
 
     /**

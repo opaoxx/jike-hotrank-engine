@@ -1,7 +1,9 @@
 package com.jike.hotrank.engine.task;
 
+import com.jike.hotrank.engine.cache.RankingCacheManager;
 import com.jike.hotrank.engine.entity.Topic;
 import com.jike.hotrank.engine.service.InteractionEventService;
+import com.jike.hotrank.engine.service.RankingNotificationService;
 import com.jike.hotrank.engine.service.TopicService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,6 +32,12 @@ class HeatAggregationTaskTest {
 
     @Mock
     private TopicService topicService;
+
+    @Mock
+    private RankingCacheManager cacheManager;
+
+    @Mock
+    private RankingNotificationService rankingNotificationService;
 
     @InjectMocks
     private HeatAggregationTask heatAggregationTask;
@@ -60,6 +68,8 @@ class HeatAggregationTaskTest {
         assertEquals(6, updated.getInteractionCount());
         assertTrue(updated.getCurrentScore().compareTo(BigDecimal.TEN) < 0,
             "Heat should be recalculated from weighted interaction score only, not existing currentScore.");
+        verify(cacheManager).evictByPrefix(RankingCacheManager.rankingPrefix());
+        verify(rankingNotificationService).publishRankingUpdated(1);
         verify(interactionEventService, never()).aggregateAllByTopic();
     }
 }

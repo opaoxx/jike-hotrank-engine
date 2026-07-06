@@ -2,6 +2,7 @@ package com.jike.hotrank.engine.service;
 
 import com.jike.hotrank.engine.dto.RankingResponseDTO;
 import com.jike.hotrank.engine.entity.Topic;
+import com.jike.hotrank.engine.entity.UserCirclePreference;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -64,6 +65,33 @@ class RankingServiceTest {
         assertEquals(new BigDecimal("3.0000"), response.getItems().get(1).getScore());
         assertEquals(new BigDecimal("2.0000"), response.getItems().get(2).getScore());
         verify(topicService, never()).getGlobalHotRank(eq(3));
+    }
+
+    @Test
+    void shouldReturnPersonalizedRankingTypeAndRerankByCirclePreference() {
+        Topic lowBasePreferred = topic(1L, "preferred");
+        lowBasePreferred.setCircleId(10L);
+        lowBasePreferred.setCurrentScore(new BigDecimal("10"));
+
+        Topic highBaseDefault = topic(2L, "default");
+        highBaseDefault.setCircleId(20L);
+        highBaseDefault.setCurrentScore(new BigDecimal("30"));
+
+        UserCirclePreference preference = new UserCirclePreference();
+        preference.setUserId(99L);
+        preference.setCircleId(10L);
+        preference.setWeight(new BigDecimal("5"));
+
+        when(topicService.getGlobalHotRank(4)).thenReturn(List.of(highBaseDefault, lowBasePreferred));
+        when(userCirclePreferenceService.getUserPreferences(99L)).thenReturn(List.of(preference));
+
+        RankingResponseDTO response = rankingService.getPersonalizedGlobalRanking(99L, 2);
+
+        assertEquals("personalized", response.getRankingType());
+        assertEquals(99L, response.getUserId());
+        assertEquals(List.of(1L, 2L), response.getItems().stream()
+            .map(item -> item.getTopicId())
+            .toList());
     }
 
     private Topic topic(Long id, String title) {

@@ -1,7 +1,9 @@
 package com.jike.hotrank.engine.task;
 
+import com.jike.hotrank.engine.cache.RankingCacheManager;
 import com.jike.hotrank.engine.entity.Topic;
 import com.jike.hotrank.engine.service.InteractionEventService;
+import com.jike.hotrank.engine.service.RankingNotificationService;
 import com.jike.hotrank.engine.service.TopicService;
 import com.jike.hotrank.engine.util.HeatScoreCalculator;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,8 @@ public class HeatAggregationTask {
 
     private final InteractionEventService interactionEventService;
     private final TopicService topicService;
+    private final RankingCacheManager cacheManager;
+    private final RankingNotificationService rankingNotificationService;
 
     @Scheduled(fixedRate = 300000)
     public void aggregateHeat() {
@@ -67,6 +71,8 @@ public class HeatAggregationTask {
 
             if (!topicsToUpdate.isEmpty()) {
                 topicService.batchUpdateScore(topicsToUpdate);
+                cacheManager.evictByPrefix(RankingCacheManager.rankingPrefix());
+                rankingNotificationService.publishRankingUpdated(topicsToUpdate.size());
                 log.info("Heat aggregation finished: updatedTopics={}", topicsToUpdate.size());
                 checkTopNEvent(previousTopTopicIds, TOP_N_THRESHOLD);
             }
@@ -96,6 +102,7 @@ public class HeatAggregationTask {
     }
 
     private void publishTopNAlert(int threshold, Topic topic) {
+        rankingNotificationService.publishTopNEntered(threshold, topic);
         log.info("Topic entered TOP{}: topicId={}, title={}, score={}",
             threshold, topic.getId(), topic.getTitle(), topic.getCurrentScore());
     }

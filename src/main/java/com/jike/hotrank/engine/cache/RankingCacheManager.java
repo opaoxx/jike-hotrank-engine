@@ -219,4 +219,16 @@ public class RankingCacheManager {
     public static String surgingRankKey(Integer limit) {
         return "ranking:surging:" + (limit != null ? limit : 10);
     }
+
+    public static String personalizedRankKey(Long userId, Integer limit) {
+        return personalizedRankPrefix(userId) + ":" + (limit != null ? limit : 50);
+    }
+
+    public static String personalizedRankPrefix(Long userId) {
+        return "ranking:personalized:" + userId;
+    }
+
+    public static String rankingPrefix() {
+        return "ranking:";
+    }
 }
