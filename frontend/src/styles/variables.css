@@ -1,0 +1,119 @@
+/* 暗色主题自定义变量 */
+:root {
+  --bg-primary: #0f172a;
+  --bg-surface: #1e293b;
+  --bg-elevated: #334155;
+  --border-color: #334155;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --green: #22c55e;
+  --red: #ef4444;
+  --yellow: #eab308;
+  --orange: #f97316;
+}
+
+/* Element Plus 暗色 + 字体覆盖 */
+html.dark {
+  --el-bg-color: #1e293b;
+  --el-bg-color-overlay: #1e293b;
+  --el-bg-color-page: #0f172a;
+  --el-text-color-primary: #e2e8f0;
+  --el-text-color-regular: #94a3b8;
+  --el-border-color: #334155;
+  --el-border-color-light: #334155;
+  --el-fill-color-blank: #1e293b;
+  --el-fill-color-light: #273449;
+
+  /* 全局字体放大 */
+  --el-font-size-base: 16px;
+  --el-font-size-medium: 16px;
+  --el-font-size-small: 14px;
+  --el-font-size-extra-small: 13px;
+}
+
+body {
+  margin: 0;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', 'PingFang SC', sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* Element Plus 全局字体放大 */
+.el-table { font-size: 16px; }
+.el-table th { font-size: 15px; }
+.el-table td { font-size: 16px; }
+.el-tabs__item { font-size: 16px !important; }
+.el-tag { font-size: 14px; }
+.el-button { font-size: 16px; }
+.el-input__inner { font-size: 16px; }
+.el-select .el-input__inner { font-size: 16px; }
+.el-form-item__label { font-size: 16px; }
+.el-descriptions__label { font-size: 15px; }
+.el-descriptions__content { font-size: 16px; }
+.el-dialog__title { font-size: 20px; }
+.el-dialog__body { font-size: 16px; }
+.el-card__header { font-size: 17px; }
+.el-collapse-item__header { font-size: 16px; }
+.el-loading-text { font-size: 16px; }
+.el-message { font-size: 16px; }
+.el-input-number { font-size: 16px; }
+
+/* 滚动条 */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+/* ECharts 容器 */
+.chart-container {
+  width: 100%;
+  height: 340px;
+}
+
+/* 排名徽章 */
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  font-size: 15px;
+  font-weight: 700;
+}
+.rank-1 { background: #f59e0b; color: #000; }
+.rank-2 { background: #94a3b8; color: #000; }
+.rank-3 { background: #cd853f; color: #000; }
+
+/* 统计卡片 */
+.stat-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 24px;
+  transition: transform 0.2s;
+}
+.stat-card:hover {
+  transform: translateY(-2px);
+}
+.stat-card .label {
+  font-size: 15px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.stat-card .value {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+.stat-card .sub {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
