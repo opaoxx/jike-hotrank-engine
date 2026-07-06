@@ -4,6 +4,7 @@ import com.jike.hotrank.engine.cache.RankingCacheManager;
 import com.jike.hotrank.engine.entity.Topic;
 import com.jike.hotrank.engine.service.InteractionEventService;
 import com.jike.hotrank.engine.service.RankingNotificationService;
+import com.jike.hotrank.engine.service.TaskLockService;
 import com.jike.hotrank.engine.service.TopicService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,8 +40,19 @@ class HeatAggregationTaskTest {
     @Mock
     private RankingNotificationService rankingNotificationService;
 
+    @Mock
+    private TaskLockService taskLockService;
+
     @InjectMocks
     private HeatAggregationTask heatAggregationTask;
+
+    @Test
+    void shouldRunScheduledAggregationThroughTaskLock() {
+        heatAggregationTask.aggregateHeatWithLock();
+
+        verify(taskLockService).runWithLock(org.mockito.ArgumentMatchers.eq("jike-hotrank:heat-aggregation"),
+            org.mockito.ArgumentMatchers.any(Runnable.class));
+    }
 
     @Test
     @SuppressWarnings("unchecked")

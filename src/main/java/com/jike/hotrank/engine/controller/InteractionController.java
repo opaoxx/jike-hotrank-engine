@@ -1,14 +1,8 @@
 package com.jike.hotrank.engine.controller;
 
-import com.jike.hotrank.engine.cache.RankingCacheManager;
 import com.jike.hotrank.engine.dto.ApiResponse;
 import com.jike.hotrank.engine.entity.InteractionEvent;
-import com.jike.hotrank.engine.entity.Topic;
-import com.jike.hotrank.engine.service.AntiSpamService;
-import com.jike.hotrank.engine.service.InteractionEventService;
-import com.jike.hotrank.engine.service.TopicService;
-import com.jike.hotrank.engine.service.UserBehaviorService;
-import com.jike.hotrank.engine.service.UserCirclePreferenceService;
+import com.jike.hotrank.engine.service.InteractionWriteService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,12 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class InteractionController {
 
-    private final InteractionEventService interactionEventService;
-    private final AntiSpamService antiSpamService;
-    private final UserBehaviorService userBehaviorService;
-    private final TopicService topicService;
-    private final UserCirclePreferenceService userCirclePreferenceService;
-    private final RankingCacheManager cacheManager;
+    private final InteractionWriteService interactionWriteService;
 
     @PostMapping
     public ApiResponse<InteractionEvent> recordInteraction(@RequestBody InteractionEvent event) {
@@ -42,54 +31,11 @@ public class InteractionController {
             return ApiResponse.error(400, "互动类型无效：必须为 1(点赞)、2(收藏)、3(转发) 或 5(评论)");
         }
 
-        Topic topic = topicService.getById(event.getTopicId());
-        if (topic == null) {
-            return ApiResponse.error(404, "话题不存在");
+        InteractionWriteService.RecordResult result = interactionWriteService.recordInteraction(event);
+        if (!result.accepted()) {
+            return ApiResponse.error(result.code(), result.message());
         }
-        if (topic.getStatus() == 0) {
-            return ApiResponse.error(403, "话题已被屏蔽");
-        }
-
-        AntiSpamService.CheckResult antiSpamResult = antiSpamService.checkInteraction(
-            event.getUserId(),
-            event.getTopicId(),
-            event.getDeviceFingerprint()
-        );
-
-        if (!antiSpamResult.allowed()) {
-            userBehaviorService.recordInvalid(
-                event.getUserId(),
-                event.getTopicId(),
-                event.getInteractionType(),
-                event.getDeviceFingerprint(),
-                event.getIpAddress(),
-                antiSpamResult.reason()
-            );
-            return ApiResponse.error(429, "互动频率过高，请稍后再试");
-        }
-
-        event.setWeightMultiplier(antiSpamResult.weightMultiplier());
-        userBehaviorService.recordValid(
-            event.getUserId(),
-            event.getTopicId(),
-            event.getInteractionType(),
-            event.getDeviceFingerprint(),
-            event.getIpAddress()
-        );
-
-        InteractionEvent recorded = interactionEventService.record(event);
-
-        try {
-            userCirclePreferenceService.updatePreference(event.getUserId(), topic.getCircleId());
-            cacheManager.evictByPrefix(RankingCacheManager.personalizedRankPrefix(event.getUserId()));
-        } catch (Exception e) {
-            log.warn("Failed to update user circle preference: userId={}, circleId={}",
-                event.getUserId(), topic.getCircleId(), e);
-        }
-
-        antiSpamService.checkAnomalySpike(event.getTopicId());
-
-        return ApiResponse.success(recorded);
+        return ApiResponse.success(result.event());
     }
 
     private boolean isSupportedInteractionType(Integer interactionType) {

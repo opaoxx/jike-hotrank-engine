@@ -4,6 +4,7 @@ import com.jike.hotrank.engine.cache.RankingCacheManager;
 import com.jike.hotrank.engine.entity.Topic;
 import com.jike.hotrank.engine.service.InteractionEventService;
 import com.jike.hotrank.engine.service.RankingNotificationService;
+import com.jike.hotrank.engine.service.TaskLockService;
 import com.jike.hotrank.engine.service.TopicService;
 import com.jike.hotrank.engine.util.HeatScoreCalculator;
 import lombok.RequiredArgsConstructor;
@@ -31,8 +32,13 @@ public class HeatAggregationTask {
     private final TopicService topicService;
     private final RankingCacheManager cacheManager;
     private final RankingNotificationService rankingNotificationService;
+    private final TaskLockService taskLockService;
 
     @Scheduled(fixedRate = 300000)
+    public void aggregateHeatWithLock() {
+        taskLockService.runWithLock("jike-hotrank:heat-aggregation", this::aggregateHeat);
+    }
+
     public void aggregateHeat() {
         LocalDateTime endTime = LocalDateTime.now();
         LocalDateTime startTime = endTime.minusMinutes(5);
