@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jike HotRank Engine — Dashboard</title>
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"
+          integrity="sha384-vsrfeLOOY6KuIYKDlmVH5UiBmgIdB1oEf7p01YgWHuqmOHfZr374+odEv96n9tNC"
+          crossorigin="anonymous"></script>
+</head>
+<body>
+
+  <!-- Nav Bar -->
+  <nav class="navbar">
+    <span class="navbar-brand">🔥 Jike HotRank</span>
+    <div class="navbar-right">
+      <span class="sse-indicator">
+        <span id="sse-dot" class="sse-dot disconnected"></span>
+        <span id="sse-text">SSE: ● connecting...</span>
+      </span>
+      <span class="refresh-timer" id="refresh-timer">Refresh: 30s</span>
+    </div>
+  </nav>
+
+  <!-- Tab Bar -->
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="overview">📊 Overview</button>
+    <button class="tab-btn" data-tab="global">🌐 Global Hot</button>
+    <button class="tab-btn" data-tab="circle">⭕ Circle</button>
+    <button class="tab-btn" data-tab="newcomer">🆕 Newcomer</button>
+    <button class="tab-btn" data-tab="surging">🚀 Surging</button>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content" id="main-content">
+    <div class="loading"><div class="spinner"></div> Loading dashboard...</div>
+  </div>
+
+  <!-- Interaction Simulator (always visible at bottom) -->
+  <div class="main-content">
+    <div class="panel">
+      <div class="panel-header collapsible-toggle" id="sim-toggle">🧪 Interaction Simulator <span style="font-size:12px;color:var(--text-muted)">▼</span></div>
+      <div class="panel-body collapsible-content" id="sim-content">
+        <form id="interaction-form">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="sim-topicId">Topic ID *</label>
+              <input type="number" id="sim-topicId" min="1" value="1" required>
+            </div>
+            <div class="form-group">
+              <label for="sim-userId">User ID *</label>
+              <input type="number" id="sim-userId" min="1" value="9001" required>
+            </div>
+            <div class="form-group">
+              <label for="sim-type">Interaction Type *</label>
+              <select id="sim-type">
+                <option value="1">👍 Like (1)</option>
+                <option value="2">🔖 Bookmark (2)</option>
+                <option value="3">📤 Share (3)</option>
+                <option value="5">💬 Comment (5)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="sim-device">Device Fingerprint</label>
+              <input type="text" id="sim-device" placeholder="device_001" maxlength="100">
+            </div>
+            <div class="form-group">
+              <label for="sim-ip">IP Address</label>
+              <input type="text" id="sim-ip" placeholder="192.168.1.100" maxlength="50">
+            </div>
+            <div class="form-group">
+              <label>&nbsp;</label>
+              <button type="submit" class="btn btn-primary" id="interaction-submit">Submit Interaction</button>
+            </div>
+          </div>
+        </form>
+        <div id="interaction-result"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Topic Detail Modal -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modal-title">Topic Detail</h2>
+        <button class="modal-close" id="modal-close">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-footer" id="modal-footer"></div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="/js/api.js"></script>
+  <script src="/js/dashboard.js"></script>
+  <script>
+    // Collapsible toggle for simulator
+    document.getElementById('sim-toggle').addEventListener('click', function() {
+      const content = document.getElementById('sim-content');
+      content.classList.toggle('open');
+      const arrow = this.querySelector('span');
+      arrow.textContent = content.classList.contains('open') ? '▲' : '▼';
+    });
+  </script>
+</body>
+</html>
