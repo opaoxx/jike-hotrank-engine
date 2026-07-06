@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jike.hotrank.engine.mapper.UserCirclePreferenceMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="PreferenceResult" type="com.jike.hotrank.engine.entity.UserCirclePreference">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="circleId" column="circle_id"/>
+        <result property="weight" column="weight"/>
+        <result property="interactionCount" column="interaction_count"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <!-- 查询用户的圈子偏好列表（按权重降序） -->
+    <select id="selectByUserId" resultMap="PreferenceResult">
+        SELECT id, user_id, circle_id, weight, interaction_count, created_at, updated_at
+        FROM user_circle_preference
+        WHERE user_id = #{userId}
+        ORDER BY weight DESC
+    </select>
+
+    <!-- 查询用户对指定圈子的偏好 -->
+    <select id="selectByUserAndCircle" resultMap="PreferenceResult">
+        SELECT id, user_id, circle_id, weight, interaction_count, created_at, updated_at
+        FROM user_circle_preference
+        WHERE user_id = #{userId} AND circle_id = #{circleId}
+    </select>
+
+    <!-- 插入或更新用户圈子偏好 -->
+    <insert id="insertOrUpdate">
+        INSERT INTO user_circle_preference (user_id, circle_id, weight, interaction_count)
+        VALUES (#{userId}, #{circleId}, #{weight}, #{interactionCount})
+        ON DUPLICATE KEY UPDATE
+            weight = VALUES(weight),
+            interaction_count = interaction_count + 1
+    </insert>
+
+    <!-- 增加用户圈子互动次数 -->
+    <update id="incrementInteractionCount">
+        UPDATE user_circle_preference
+        SET interaction_count = interaction_count + 1
+        WHERE user_id = #{userId} AND circle_id = #{circleId}
+    </update>
+
+</mapper>

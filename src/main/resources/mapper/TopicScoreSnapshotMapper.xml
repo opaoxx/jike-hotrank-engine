@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jike.hotrank.engine.mapper.TopicScoreSnapshotMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="SnapshotResult" type="com.jike.hotrank.engine.entity.TopicScoreSnapshot">
+        <id property="id" column="id"/>
+        <result property="topicId" column="topic_id"/>
+        <result property="circleId" column="circle_id"/>
+        <result property="score" column="score"/>
+        <result property="rankPosition" column="rank_position"/>
+        <result property="snapshotTime" column="snapshot_time"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <!-- 插入快照记录 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO topic_score_snapshot (topic_id, circle_id, score, rank_position, snapshot_time)
+        VALUES (#{topicId}, #{circleId}, #{score}, #{rankPosition}, #{snapshotTime})
+    </insert>
+
+    <!-- 批量插入快照记录 -->
+    <insert id="batchInsert">
+        INSERT INTO topic_score_snapshot (topic_id, circle_id, score, rank_position, snapshot_time)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.topicId}, #{item.circleId}, #{item.score}, #{item.rankPosition}, #{item.snapshotTime})
+        </foreach>
+    </insert>
+
+    <!-- 查询指定时间点的榜单快照 -->
+    <select id="selectBySnapshotTime" resultMap="SnapshotResult">
+        SELECT id, topic_id, circle_id, score, rank_position, snapshot_time, created_at
+        FROM topic_score_snapshot
+        WHERE snapshot_time = #{snapshotTime}
+        ORDER BY rank_position ASC
+    </select>
+
+    <!-- 查询指定圈子在指定时间点的榜单快照 -->
+    <select id="selectByCircleAndTime" resultMap="SnapshotResult">
+        SELECT id, topic_id, circle_id, score, rank_position, snapshot_time, created_at
+        FROM topic_score_snapshot
+        WHERE circle_id = #{circleId} AND snapshot_time = #{snapshotTime}
+        ORDER BY rank_position ASC
+    </select>
+
+    <!-- 查询话题的历史热度趋势 -->
+    <select id="selectTopicTrend" resultMap="SnapshotResult">
+        SELECT id, topic_id, circle_id, score, rank_position, snapshot_time, created_at
+        FROM topic_score_snapshot
+        WHERE topic_id = #{topicId}
+          AND snapshot_time &gt;= #{startTime}
+          AND snapshot_time &lt; #{endTime}
+        ORDER BY snapshot_time ASC
+    </select>
+
+</mapper>

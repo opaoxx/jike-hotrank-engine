@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jike.hotrank.engine.mapper.TopicMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="TopicResult" type="com.jike.hotrank.engine.entity.Topic">
+        <id property="id" column="id"/>
+        <result property="circleId" column="circle_id"/>
+        <result property="title" column="title"/>
+        <result property="content" column="content"/>
+        <result property="authorId" column="author_id"/>
+        <result property="publishTime" column="publish_time"/>
+        <result property="currentScore" column="current_score"/>
+        <result property="interactionCount" column="interaction_count"/>
+        <result property="status" column="status"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <!-- 根据ID查询话题 -->
+    <select id="selectById" resultMap="TopicResult">
+        SELECT id, circle_id, title, content, author_id, publish_time, current_score,
+               interaction_count, status, created_at, updated_at
+        FROM topic
+        WHERE id = #{id}
+    </select>
+
+    <!-- 查询全站热榜TOP N -->
+    <select id="selectGlobalHotRank" resultMap="TopicResult">
+        SELECT id, circle_id, title, content, author_id, publish_time, current_score,
+               interaction_count, status, created_at, updated_at
+        FROM topic
+        WHERE status = 1
+        ORDER BY current_score DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 查询圈子热榜TOP N -->
+    <select id="selectCircleHotRank" resultMap="TopicResult">
+        SELECT id, circle_id, title, content, author_id, publish_time, current_score,
+               interaction_count, status, created_at, updated_at
+        FROM topic
+        WHERE circle_id = #{circleId} AND status = 1
+        ORDER BY current_score DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 查询新星榜（24小时内发布的热门话题） -->
+    <select id="selectNewcomerRank" resultMap="TopicResult">
+        SELECT id, circle_id, title, content, author_id, publish_time, current_score,
+               interaction_count, status, created_at, updated_at
+        FROM topic
+        WHERE status = 1
+          AND publish_time &gt;= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+        ORDER BY current_score DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 更新话题热度分 -->
+    <update id="updateScore">
+        UPDATE topic
+        SET current_score = #{score},
+            interaction_count = #{interactionCount}
+        WHERE id = #{topicId}
+    </update>
+
+    <!-- 批量更新话题热度分 -->
+    <update id="batchUpdateScore">
+        <foreach collection="list" item="item" separator=";">
+            UPDATE topic
+            SET current_score = #{item.currentScore},
+                interaction_count = #{item.interactionCount}
+            WHERE id = #{item.id}
+        </foreach>
+    </update>
+
+    <!-- 插入话题 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO topic (circle_id, title, content, author_id, publish_time, current_score, interaction_count, status)
+        VALUES (#{circleId}, #{title}, #{content}, #{authorId}, #{publishTime}, #{currentScore}, #{interactionCount}, #{status})
+    </insert>
+
+    <!-- 更新话题状态 -->
+    <update id="updateStatus">
+        UPDATE topic SET status = #{status} WHERE id = #{id}
+    </update>
+
+    <!-- 查询指定状态的话题 -->
+    <select id="selectByStatus" resultMap="TopicResult">
+        SELECT id, circle_id, title, content, author_id, publish_time, current_score,
+               interaction_count, status, created_at, updated_at
+        FROM topic
+        WHERE status = #{status}
+        ORDER BY created_at DESC
+    </select>
+
+</mapper>

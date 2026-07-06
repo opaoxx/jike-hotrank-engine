@@ -1,0 +1,39 @@
+# ==================== 应用基础配置 ====================
+spring:
+  application:
+    name: jike-hotrank-engine
+  datasource:
+    url: jdbc:mysql://localhost:3306/jike_hotrank?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+server:
+  port: 8080
+
+# ==================== MyBatis配置 ====================
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.jike.hotrank.engine.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# ==================== 日志配置 ====================
+logging:
+  level:
+    com.jike.hotrank.engine: info
+    com.jike.hotrank.engine.mapper: debug
+    com.jike.hotrank.engine.task: info
+    com.jike.hotrank.engine.cache: info
+    com.jike.hotrank.engine.service: info
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# ==================== 定时任务配置 ====================
+# 热度聚合任务：每5分钟执行
+# 热度快照任务：每小时执行

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jike.hotrank.engine.mapper.CircleMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="CircleResult" type="com.jike.hotrank.engine.entity.Circle">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="description" column="description"/>
+        <result property="iconUrl" column="icon_url"/>
+        <result property="status" column="status"/>
+        <result property="sortOrder" column="sort_order"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <!-- 根据ID查询圈子 -->
+    <select id="selectById" resultMap="CircleResult">
+        SELECT id, name, description, icon_url, status, sort_order, created_at, updated_at
+        FROM circle
+        WHERE id = #{id}
+    </select>
+
+    <!-- 查询所有启用的圈子 -->
+    <select id="selectAllEnabled" resultMap="CircleResult">
+        SELECT id, name, description, icon_url, status, sort_order, created_at, updated_at
+        FROM circle
+        WHERE status = 1
+        ORDER BY sort_order ASC, id ASC
+    </select>
+
+    <!-- 插入圈子 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO circle (name, description, icon_url, status, sort_order)
+        VALUES (#{name}, #{description}, #{iconUrl}, #{status}, #{sortOrder})
+    </insert>
+
+    <!-- 更新圈子 -->
+    <update id="updateById">
+        UPDATE circle
+        SET name = #{name},
+            description = #{description},
+            icon_url = #{iconUrl},
+            status = #{status},
+            sort_order = #{sortOrder}
+        WHERE id = #{id}
+    </update>
+
+</mapper>

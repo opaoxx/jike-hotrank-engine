@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jike.hotrank.engine.mapper.UserBehaviorMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="UserBehaviorResult" type="com.jike.hotrank.engine.entity.UserBehavior">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="topicId" column="topic_id"/>
+        <result property="interactionType" column="interaction_type"/>
+        <result property="deviceFingerprint" column="device_fingerprint"/>
+        <result property="ipAddress" column="ip_address"/>
+        <result property="isValid" column="is_valid"/>
+        <result property="invalidReason" column="invalid_reason"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <!-- 插入用户行为记录 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO user_behavior (user_id, topic_id, interaction_type, device_fingerprint, ip_address, is_valid, invalid_reason)
+        VALUES (#{userId}, #{topicId}, #{interactionType}, #{deviceFingerprint}, #{ipAddress}, #{isValid}, #{invalidReason})
+    </insert>
+
+    <!-- 查询用户对指定话题的有效行为次数（24小时内） -->
+    <select id="countValidByUserAndTopic" resultType="int">
+        SELECT COUNT(*)
+        FROM user_behavior
+        WHERE user_id = #{userId}
+          AND topic_id = #{topicId}
+          AND is_valid = 1
+          AND created_at &gt;= #{startTime}
+    </select>
+
+    <!-- 查询设备指纹关联的不同用户数 -->
+    <select id="countDistinctUserByDevice" resultType="int">
+        SELECT COUNT(DISTINCT user_id)
+        FROM user_behavior
+        WHERE device_fingerprint = #{deviceFingerprint}
+          AND created_at &gt;= #{startTime}
+    </select>
+
+    <!-- 标记行为为无效 -->
+    <update id="markInvalid">
+        UPDATE user_behavior
+        SET is_valid = 0, invalid_reason = #{reason}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 查询异常行为列表（用于防刷报告） -->
+    <select id="selectInvalidBehaviors" resultMap="UserBehaviorResult">
+        SELECT id, user_id, topic_id, interaction_type, device_fingerprint, ip_address,
+               is_valid, invalid_reason, created_at
+        FROM user_behavior
+        WHERE is_valid = 0
+          AND created_at &gt;= #{startTime}
+          AND created_at &lt; #{endTime}
+        ORDER BY created_at DESC
+    </select>
+
+</mapper>
