@@ -114,10 +114,15 @@ public class UserBehaviorService {
         if (!invalidBehaviors.isEmpty()) {
             report.append("详细拦截记录：\n");
             for (UserBehavior behavior : invalidBehaviors) {
-                report.append(String.format("- 用户%d 对话题%d 的%s互动被拦截，原因：%s\n",
-                    behavior.getUserId(), behavior.getTopicId(),
-                    getInteractionTypeName(behavior.getInteractionType()),
-                    behavior.getInvalidReason()));
+                report.append("- 用户")
+                    .append(behavior.getUserId())
+                    .append(" 对话题")
+                    .append(behavior.getTopicId())
+                    .append(" 的")
+                    .append(getInteractionTypeName(behavior.getInteractionType()))
+                    .append("互动被拦截，原因：")
+                    .append(behavior.getInvalidReason())
+                    .append('\n');
             }
         }
 

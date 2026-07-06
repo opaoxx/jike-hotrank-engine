@@ -2,7 +2,6 @@ package com.jike.hotrank.engine;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * 即刻App内容社区实时热点榜单引擎 - 启动类
@@ -17,7 +16,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * @author JikeHotRank Team
  */
 @SpringBootApplication
-@EnableScheduling
 public class JikeHotrankEngineApplication {
 
     public static void main(String[] args) {

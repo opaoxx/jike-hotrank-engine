@@ -6,7 +6,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 /**
  * 应用启动测试
  */
-@SpringBootTest
+@SpringBootTest(properties = "jike-hotrank.scheduling.enabled=false")
 class JikeHotrankEngineApplicationTests {
 
     @Test

@@ -11,7 +11,12 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -164,14 +169,19 @@ public class HeatAggregationTask {
             for (Long topicId : newTopIds) {
                 Topic topic = topicService.getById(topicId);
                 if (topic != null) {
-                    // 触发上榜事件（模拟通知队列）
-                    log.info("【上榜事件触发】话题首次进入TOP{}：topicId={}, title={}, score={}",
-                             n, topicId, topic.getTitle(), topic.getCurrentScore());
-
-                    // TODO: 实际项目中这里应该发送到消息队列或通知服务
-                    // notificationService.sendTopNAlert(topic);
+                    publishTopNAlert(n, topic);
                 }
             }
         }
+    }
+
+    /**
+     * 发布上榜通知事件。
+     * <p>
+     * 当前项目未引入消息队列，先用结构化日志承载通知事件，后续接入MQ时只需要替换本方法实现。
+     */
+    private void publishTopNAlert(int threshold, Topic topic) {
+        log.info("【上榜事件触发】话题首次进入TOP{}：topicId={}, title={}, score={}",
+                 threshold, topic.getId(), topic.getTitle(), topic.getCurrentScore());
     }
 }

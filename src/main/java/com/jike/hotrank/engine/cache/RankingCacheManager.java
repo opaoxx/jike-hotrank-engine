@@ -1,6 +1,7 @@
 package com.jike.hotrank.engine.cache;
 
 import com.jike.hotrank.engine.dto.RankingResponseDTO;
+import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -156,6 +157,15 @@ public class RankingCacheManager {
      */
     private void cleanExpired() {
         cache.entrySet().removeIf(entry -> entry.getValue().isExpired());
+    }
+
+    /**
+     * 应用关闭时释放清理线程，避免线程池资源泄漏。
+     */
+    @PreDestroy
+    public void shutdown() {
+        cleaner.shutdownNow();
+        log.info("榜单缓存清理线程已关闭");
     }
 
     /**

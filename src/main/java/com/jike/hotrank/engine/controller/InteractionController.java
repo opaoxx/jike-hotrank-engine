@@ -3,10 +3,17 @@ package com.jike.hotrank.engine.controller;
 import com.jike.hotrank.engine.dto.ApiResponse;
 import com.jike.hotrank.engine.entity.InteractionEvent;
 import com.jike.hotrank.engine.entity.Topic;
-import com.jike.hotrank.engine.service.*;
+import com.jike.hotrank.engine.service.AntiSpamService;
+import com.jike.hotrank.engine.service.InteractionEventService;
+import com.jike.hotrank.engine.service.TopicService;
+import com.jike.hotrank.engine.service.UserBehaviorService;
+import com.jike.hotrank.engine.service.UserCirclePreferenceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 互动事件控制器
