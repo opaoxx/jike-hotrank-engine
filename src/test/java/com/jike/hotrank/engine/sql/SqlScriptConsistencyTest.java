@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -32,14 +34,27 @@ class SqlScriptConsistencyTest {
 
     @Test
     void migrationsShouldContainIndexesForExistingDatabases() throws IOException {
-        String rankingMigration = read("src/main/resources/sql/20260706_add_rank_query_indexes.sql");
-        String analysisMigration = read("src/main/resources/sql/20260706_add_analysis_query_indexes.sql");
+        String existingDatabaseMigration = read("src/main/resources/sql/20260706_upgrade_existing_database.sql");
+        String redundantIndexCleanup = read("src/main/resources/sql/20260706_drop_legacy_redundant_indexes.sql");
 
-        assertTrue(rankingMigration.contains("idx_status_score"));
-        assertTrue(rankingMigration.contains("idx_user_device_created"));
-        assertTrue(analysisMigration.contains("idx_status_created"));
-        assertTrue(analysisMigration.contains("idx_created_type"));
-        assertTrue(analysisMigration.contains("idx_valid_created_topic"));
+        assertTrue(existingDatabaseMigration.contains("CREATE TABLE IF NOT EXISTS user_circle_preference"));
+        assertTrue(existingDatabaseMigration.contains("weight_multiplier"));
+        assertTrue(existingDatabaseMigration.contains("add_index_if_missing"));
+        assertTrue(existingDatabaseMigration.contains("idx_status_score"));
+        assertTrue(existingDatabaseMigration.contains("idx_user_device_created"));
+        assertTrue(existingDatabaseMigration.contains("idx_status_created"));
+        assertTrue(existingDatabaseMigration.contains("idx_created_type"));
+        assertTrue(existingDatabaseMigration.contains("idx_valid_created_topic"));
+        assertTrue(existingDatabaseMigration.contains("idx_device (device_fingerprint)"));
+        assertTrue(redundantIndexCleanup.contains("drop_index_if_exists"));
+        assertTrue(redundantIndexCleanup.contains("idx_circle_score"));
+        assertTrue(redundantIndexCleanup.contains("idx_user_topic"));
+    }
+
+    @Test
+    void entrypointScriptsShouldReferenceExistingSqlFiles() throws IOException {
+        assertSourceTargetsExist("src/main/resources/sql/00_setup_fresh_database.sql");
+        assertSourceTargetsExist("src/main/resources/sql/01_upgrade_existing_database.sql");
     }
 
     @Test
@@ -55,8 +70,13 @@ class SqlScriptConsistencyTest {
             "docs/performance-analysis.md",
             "docs/presentation-outline.md",
             "docs/sql-explain-checklist.md",
+            "src/main/resources/sql/README.md",
+            "src/main/resources/sql/00_setup_fresh_database.sql",
+            "src/main/resources/sql/01_upgrade_existing_database.sql",
             "src/main/resources/sql/data.sql",
-            "src/main/resources/sql/repair.sql"
+            "src/main/resources/sql/repair.sql",
+            "src/main/resources/sql/20260706_upgrade_existing_database.sql",
+            "src/main/resources/sql/20260706_drop_legacy_redundant_indexes.sql"
         );
 
         for (String file : files) {
@@ -68,7 +88,20 @@ class SqlScriptConsistencyTest {
     }
 
     private List<String> mojibakeMarkers() {
-        return List.of("\u9357", "\u9983", "\u9239", "\uFFFD");
+        return List.of("鍠", "倮", "鈸", "\uFFFD");
+    }
+
+    private void assertSourceTargetsExist(String path) throws IOException {
+        String content = read(path);
+        Pattern sourcePattern = Pattern.compile("(?m)^--\\s*SOURCE\\s+([^;]+);");
+        Matcher matcher = sourcePattern.matcher(content);
+        boolean foundSource = false;
+        while (matcher.find()) {
+            foundSource = true;
+            Path target = Path.of(matcher.group(1).trim());
+            assertTrue(java.nio.file.Files.exists(target), path + " references missing file: " + target);
+        }
+        assertTrue(foundSource, path + " should reference at least one SQL file");
     }
 
     private String read(String path) throws IOException {

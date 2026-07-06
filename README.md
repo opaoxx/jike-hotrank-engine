@@ -17,8 +17,7 @@ Jike HotRank Engine 是一个基于 Spring Boot、MyBatis 和 MySQL 的内容社
 ## 快速开始
 
 ```bash
-mysql -u root -p < src/main/resources/sql/schema.sql
-mysql -u root -p < src/main/resources/sql/data.sql
+mysql -u root -p --default-character-set=utf8mb4 < src/main/resources/sql/00_setup_fresh_database.sql
 ./mvnw spring-boot:run
 ```
 
@@ -30,13 +29,13 @@ spring.datasource.username: root
 spring.datasource.password: root
 ```
 
-已有数据库升级时，按需执行：
+已有数据库升级时，执行旧库一键升级入口：
 
 ```bash
-mysql -u root -p < src/main/resources/sql/20260706_add_interaction_weight_multiplier.sql
-mysql -u root -p < src/main/resources/sql/20260706_add_rank_query_indexes.sql
-mysql -u root -p < src/main/resources/sql/20260706_add_analysis_query_indexes.sql
+mysql -u root -p --default-character-set=utf8mb4 < src/main/resources/sql/01_upgrade_existing_database.sql
 ```
+
+更多 SQL 执行顺序见 `src/main/resources/sql/README.md`。
 
 ## 核心能力
 
@@ -137,10 +136,14 @@ score = weightedInteractionScore / (publishHours + 2)^1.8
 
 | 脚本 | 用途 |
 | --- | --- |
+| `src/main/resources/sql/README.md` | SQL 执行顺序说明 |
+| `src/main/resources/sql/00_setup_fresh_database.sql` | 新库一键初始化入口 |
+| `src/main/resources/sql/01_upgrade_existing_database.sql` | 旧库一键升级入口 |
 | `src/main/resources/sql/schema.sql` | 初始化数据库表结构 |
 | `src/main/resources/sql/data.sql` | 初始化本地演示数据 |
 | `src/main/resources/sql/repair.sql` | 修复历史互动数、热度分、偏好权重和孤立数据 |
-| `src/main/resources/sql/20260706_add_analysis_query_indexes.sql` | 为 Day5 分析和审计查询补索引 |
+| `src/main/resources/sql/20260706_upgrade_existing_database.sql` | 幂等升级已有旧库，补齐字段、索引和个性化偏好表 |
+| `src/main/resources/sql/20260706_drop_legacy_redundant_indexes.sql` | 清理旧库遗留且已被当前复合索引覆盖的冗余索引 |
 | `docs/loadtest/benchmark.bat` | Windows 压测入口 |
 | `docs/loadtest/benchmark.sh` | Linux/macOS 压测入口 |
 | `docs/performance-analysis.md` | Day5 性能与数据分析说明 |

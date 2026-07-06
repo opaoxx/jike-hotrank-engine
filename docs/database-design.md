@@ -148,7 +148,6 @@ WHERE device_fingerprint = ?
 
 - `schema.sql`：新库初始化。
 - `data.sql`：本地演示数据初始化。
-- `20260706_add_interaction_weight_multiplier.sql`：给旧库补反作弊热度倍率字段。
-- `20260706_add_rank_query_indexes.sql`：给旧库补榜单、聚合和反作弊索引。
-- `20260706_add_analysis_query_indexes.sql`：给旧库补 Day5 分析接口和审计报告索引。
+- `20260706_upgrade_existing_database.sql`：给旧库补字段、个性化偏好表和当前查询路径所需索引。
+- `20260706_drop_legacy_redundant_indexes.sql`：清理早期旧 SQL 遗留且已被复合索引覆盖的冗余索引。
 - `repair.sql`：清理孤立数据，并按当前算法重算互动数、热度分和用户圈子偏好。

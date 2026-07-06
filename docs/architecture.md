@@ -108,6 +108,6 @@ flowchart TD
 ## 可观测性与维护
 
 - `repair.sql` 可用于重算互动数、热度分和用户偏好。
-- `20260706_add_interaction_weight_multiplier.sql` 用于旧库补充防刷倍率字段。
-- `20260706_add_rank_query_indexes.sql` 用于旧库补充当前查询路径所需索引。
+- `20260706_upgrade_existing_database.sql` 用于旧库补充防刷倍率字段、个性化偏好表和当前查询路径所需索引。
+- `20260706_drop_legacy_redundant_indexes.sql` 用于清理早期旧 SQL 遗留的冗余索引。
 - `docs/loadtest` 下保留压测入口脚本，用于后续 Day5 性能审查。

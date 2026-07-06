@@ -21,9 +21,34 @@ WHERE t.id IS NULL;
 -- 2. 补齐旧数据的防刷权重倍率。
 UPDATE interaction_event
 SET weight_multiplier = 1.000
-WHERE weight_multiplier IS NULL;
+WHERE weight_multiplier <= 0;
 
--- 3. 按当前算法重算话题互动数与热度分。
+-- 3. 回填旧互动事件缺失的有效行为审计。
+INSERT INTO user_behavior
+    (user_id, topic_id, interaction_type, device_fingerprint, ip_address, is_valid, invalid_reason, created_at)
+SELECT
+    ie.user_id,
+    ie.topic_id,
+    ie.interaction_type,
+    ie.device_fingerprint,
+    ie.ip_address,
+    1,
+    NULL,
+    ie.created_at
+FROM interaction_event ie
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM user_behavior ub
+    WHERE ub.user_id = ie.user_id
+      AND ub.topic_id = ie.topic_id
+      AND ub.interaction_type = ie.interaction_type
+      AND ub.created_at = ie.created_at
+      AND ub.device_fingerprint <=> ie.device_fingerprint
+      AND ub.ip_address <=> ie.ip_address
+);
+
+-- 4. 按当前算法重算话题互动数与热度分。
+-- noinspection SqlWithoutWhere
 UPDATE topic t
 LEFT JOIN (
     SELECT
@@ -35,7 +60,7 @@ LEFT JOIN (
                 WHEN 3 THEN 3
                 WHEN 5 THEN 5
                 ELSE 0
-            END * COALESCE(weight_multiplier, 1.000)) AS weighted_score
+            END * weight_multiplier) AS weighted_score
     FROM interaction_event
     GROUP BY topic_id
 ) e ON e.topic_id = t.id
@@ -48,7 +73,8 @@ SET t.interaction_count = COALESCE(e.total_count, 0),
         )
     END;
 
--- 4. 重建用户圈子偏好，保持与个性化榜单逻辑一致。
+-- 5. 重建用户圈子偏好，保持与个性化榜单逻辑一致。
+-- noinspection SqlWithoutWhere
 DELETE FROM user_circle_preference;
 
 INSERT INTO user_circle_preference (user_id, circle_id, weight, interaction_count)
@@ -61,11 +87,11 @@ FROM interaction_event ie
 JOIN topic t ON ie.topic_id = t.id
 GROUP BY ie.user_id, t.circle_id;
 
--- 5. 清理过期快照，保留最近 7 天。
+-- 6. 清理过期快照，保留最近 7 天。
 DELETE FROM topic_score_snapshot
 WHERE snapshot_time < DATE_SUB(NOW(), INTERVAL 7 DAY);
 
--- 6. 验证修复结果：返回仍不一致的话题。
+-- 7. 验证修复结果：返回仍不一致的话题。
 SELECT
     t.id,
     t.title,
