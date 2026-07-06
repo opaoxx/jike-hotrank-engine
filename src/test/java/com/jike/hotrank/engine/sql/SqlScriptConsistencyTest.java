@@ -72,6 +72,7 @@ class SqlScriptConsistencyTest {
             "docs/数据库执行计划检查清单.md",
             "docs/热度算法对比报告.md",
             "docs/窗口函数实践说明.md",
+            "docs/互动模拟与榜单变化记录.md",
             "src/main/resources/sql/数据库脚本执行顺序说明.md",
             "src/main/resources/sql/00_setup_fresh_database.sql",
             "src/main/resources/sql/01_upgrade_existing_database.sql",

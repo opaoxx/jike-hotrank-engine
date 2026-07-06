@@ -252,6 +252,7 @@ score = weightedInteractionScore / (publishHours + 2)^1.8
 | `docs/数据库设计说明.md` | 数据库设计说明 |
 | `docs/热度算法对比报告.md` | Day1 热度算法对比报告 |
 | `docs/窗口函数实践说明.md` | Day2 MySQL 窗口函数实践说明 |
+| `docs/互动模拟与榜单变化记录.md` | 互动模拟与榜单变化实测记录 |
 | `docs/性能与数据分析说明.md` | 性能与数据分析说明 |
 | `docs/数据库执行计划检查清单.md` | SQL EXPLAIN 检查清单 |
 | `docs/演示手册.md` | Demo 演示手册 |
