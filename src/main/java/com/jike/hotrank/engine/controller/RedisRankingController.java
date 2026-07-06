@@ -1,10 +1,12 @@
 package com.jike.hotrank.engine.controller;
 
 import com.jike.hotrank.engine.cache.RedisRankingService;
+import com.jike.hotrank.engine.config.HotRankProperties;
 import com.jike.hotrank.engine.dto.ApiResponse;
 import com.jike.hotrank.engine.dto.RankingResponseDTO;
 import com.jike.hotrank.engine.entity.Topic;
 import com.jike.hotrank.engine.service.TopicService;
+import com.jike.hotrank.engine.util.RankingLimits;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -27,17 +29,20 @@ public class RedisRankingController {
 
     private final RedisRankingService redisRankingService;
     private final TopicService topicService;
+    private final HotRankProperties properties;
 
     @GetMapping("/global")
     public ApiResponse<RankingResponseDTO> getGlobalRanking(@RequestParam(required = false) Integer limit) {
-        return ApiResponse.success(redisRankingService.getGlobalRanking(limit != null ? limit : 50));
+        int actualLimit = RankingLimits.global(limit);
+        return ApiResponse.success(redisRankingService.getGlobalRanking(actualLimit));
     }
 
     @GetMapping("/circle/{circleId}")
     public ApiResponse<RankingResponseDTO> getCircleRanking(
             @PathVariable Long circleId,
             @RequestParam(required = false) Integer limit) {
-        return ApiResponse.success(redisRankingService.getCircleRanking(circleId, limit != null ? limit : 20));
+        int actualLimit = RankingLimits.circle(limit);
+        return ApiResponse.success(redisRankingService.getCircleRanking(circleId, actualLimit));
     }
 
     /**
@@ -45,7 +50,10 @@ public class RedisRankingController {
      * 生产环境应由定时任务自动调用，这里提供手动入口方便演示。
      */
     @PostMapping("/sync")
-    public ApiResponse<String> syncAll() {
+    public ApiResponse<String> syncAll(@RequestParam String token) {
+        if (!isValidToken(token)) {
+            return ApiResponse.error(403, "运维 token 无效");
+        }
         List<Topic> topics = topicService.listAll();
         redisRankingService.syncAllTopics(topics);
         return ApiResponse.success("已同步 " + topics.size() + " 个话题到 Redis");
@@ -55,8 +63,15 @@ public class RedisRankingController {
      * 清空 Redis 排名数据。
      */
     @PostMapping("/flush")
-    public ApiResponse<String> flush() {
+    public ApiResponse<String> flush(@RequestParam String token) {
+        if (!isValidToken(token)) {
+            return ApiResponse.error(403, "运维 token 无效");
+        }
         redisRankingService.flushAll();
         return ApiResponse.success("Redis 排名数据已清空");
+    }
+
+    private boolean isValidToken(String token) {
+        return properties.getOperations().getToken().equals(token);
     }
 }

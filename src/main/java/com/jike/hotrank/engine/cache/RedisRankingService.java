@@ -30,8 +30,6 @@ import java.util.Set;
  * Key 设计：
  * - ranking:global        → 全站热榜 ZSet
  * - ranking:circle:{id}   → 圈子热榜 ZSet
- * - ranking:newcomer      → 新星榜 ZSet（24h 内话题）
- * - ranking:surging       → 飙升榜 ZSet
  */
 @Slf4j
 @Service
@@ -40,8 +38,6 @@ public class RedisRankingService {
 
     private static final String KEY_GLOBAL = "ranking:global";
     private static final String KEY_CIRCLE_PREFIX = "ranking:circle:";
-    private static final String KEY_NEWCOMER = "ranking:newcomer";
-    private static final String KEY_SURGING = "ranking:surging";
 
     private final StringRedisTemplate redisTemplate;
     private final TopicService topicService;
@@ -99,8 +95,9 @@ public class RedisRankingService {
      * 清空所有排名数据。
      */
     public void flushAll() {
-        redisTemplate.delete(List.of(KEY_GLOBAL, KEY_NEWCOMER, KEY_SURGING));
-        // 清空圈子榜
+        // 清空全站榜
+        redisTemplate.delete(KEY_GLOBAL);
+        // 清空圈子榜（KEYS 在数据量大时应改用 SCAN，演示场景可接受）
         Set<String> circleKeys = redisTemplate.keys(KEY_CIRCLE_PREFIX + "*");
         if (circleKeys != null && !circleKeys.isEmpty()) {
             redisTemplate.delete(circleKeys);

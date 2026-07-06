@@ -105,7 +105,9 @@ public class RankingCacheManager {
     }
 
     public void putNull(String key) {
-        long ttl = BASE_TTL_MS / 2;
+        long baseNullTtl = BASE_TTL_MS / 2;
+        long jitter = (long) (Math.random() * TTL_JITTER_MS) - TTL_JITTER_MS / 2;
+        long ttl = baseNullTtl + jitter;
         cache.put(key, new CacheEntry(null, System.currentTimeMillis() + ttl));
         putCount.incrementAndGet();
         log.debug("Ranking cache put null: key={}, ttl={}ms", key, ttl);

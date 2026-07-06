@@ -10,7 +10,7 @@ Jike HotRank Engine 是一个基于 Spring Boot、MyBatis 和 MySQL 的内容社
 | Web 框架 | Spring Boot 4.0.6 |
 | ORM | MyBatis 4.0.1 |
 | 数据库 | MySQL 8.0 |
-| 缓存 | JVM 本地缓存 |
+| 缓存 | JVM 本地缓存 + Redis ZSet |
 | 定时任务 | Spring Scheduling |
 | 测试 | JUnit 5 + Mockito |
 
@@ -29,6 +29,29 @@ spring.datasource.username: root
 spring.datasource.password: root
 ```
 
+### Redis（可选，用于对比压测）
+
+项目同时实现了 MySQL 窗口函数排名和 Redis ZSet 排名两套方案，可在压测时直接对比 QPS 和延迟。
+
+```bash
+# WSL 或 Linux 中启动 Redis
+sudo service redis-server start
+redis-cli ping  # 返回 PONG 即正常
+```
+
+Redis 默认连接 `localhost:6379`，在 `application.yml` 中配置：
+
+```yaml
+spring.data.redis:
+  host: localhost
+  port: 6379
+  timeout: 3000ms
+```
+
+> Windows 开发环境下，WSL2 的 Redis 通过 localhost 转发可直接被 Windows 上的 Java 应用访问，无需额外配置。
+
+首次使用需手动同步数据：`POST /api/redis-ranking/sync?token=ops_demo_token`
+
 已有数据库升级时，执行旧库一键升级入口：
 
 ```bash
@@ -44,6 +67,7 @@ mysql -u root -p --default-character-set=utf8mb4 < src/main/resources/sql/01_upg
 - 提供全站热榜、圈子热榜、新星榜、飙升榜和个性化热榜。
 - 支持频率限制、设备指纹降权、异常突增审核标记。
 - 使用本地缓存降低榜单查询压力，并缓存空结果避免穿透。
+- 热度聚合后同步更新 Redis ZSet，支持 MySQL vs Redis 排名方案对比。
 - 热度聚合后清理榜单缓存，并通过 SSE 推送榜单变化事件。
 - 定时聚合与快照任务使用 MySQL named lock 避免多实例重复执行。
 
@@ -76,6 +100,17 @@ mysql -u root -p --default-character-set=utf8mb4 < src/main/resources/sql/01_upg
 | GET | `/api/ranking/personalized?userId={userId}&limit=50` | 个性化热榜 |
 
 `limit` 会按接口类型归一化并限制最大值，避免查询和缓存 key 被异常参数放大。
+
+### Redis 排名（对比用）
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/api/redis-ranking/global?limit=50` | Redis 全站热榜 |
+| GET | `/api/redis-ranking/circle/{circleId}?limit=20` | Redis 圈子热榜 |
+| POST | `/api/redis-ranking/sync?token=ops_demo_token` | 手动全量同步到 Redis |
+| POST | `/api/redis-ranking/flush?token=ops_demo_token` | 清空 Redis 排名数据 |
+
+Redis 接口与 MySQL 接口共享相同的 DTO 格式和 limit 归一化逻辑，方便压测时做 A/B 对比。
 
 ### 话题管理
 
