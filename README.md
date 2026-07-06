@@ -29,7 +29,7 @@ mysql -u root -p --default-character-set=utf8mb4 < src/main/resources/sql/00_set
 mysql -u root -p --default-character-set=utf8mb4 < src/main/resources/sql/01_upgrade_existing_database.sql
 ```
 
-更多 SQL 执行顺序见 `src/main/resources/sql/README.md`。
+更多 SQL 执行顺序见 `src/main/resources/sql/数据库脚本执行顺序说明.md`。
 
 ### 2. 启动后端
 
@@ -239,7 +239,7 @@ score = weightedInteractionScore / (publishHours + 2)^1.8
 
 | 脚本 | 用途 |
 | --- | --- |
-| `src/main/resources/sql/README.md` | SQL 执行顺序说明 |
+| `src/main/resources/sql/数据库脚本执行顺序说明.md` | SQL 执行顺序说明 |
 | `src/main/resources/sql/00_setup_fresh_database.sql` | 新库一键初始化入口 |
 | `src/main/resources/sql/01_upgrade_existing_database.sql` | 旧库一键升级入口 |
 | `src/main/resources/sql/schema.sql` | 初始化数据库表结构 |
@@ -247,11 +247,18 @@ score = weightedInteractionScore / (publishHours + 2)^1.8
 | `src/main/resources/sql/repair.sql` | 修复历史互动数、热度分、偏好权重和孤立数据 |
 | `docs/loadtest/benchmark.bat` | Windows 压测入口 |
 | `docs/loadtest/benchmark.sh` | Linux/macOS 压测入口 |
-| `docs/api.md` | API 参考文档 |
-| `docs/architecture.md` | 系统架构说明 |
-| `docs/performance-analysis.md` | 性能与数据分析说明 |
-| `docs/day7-defense-guide.md` | 答辩问答手册 |
-| `docs/delivery-report.md` | 最终交付报告 |
+| `docs/接口参考文档.md` | API 参考文档 |
+| `docs/系统架构说明.md` | 系统架构说明 |
+| `docs/数据库设计说明.md` | 数据库设计说明 |
+| `docs/热度算法对比报告.md` | Day1 热度算法对比报告 |
+| `docs/窗口函数实践说明.md` | Day2 MySQL 窗口函数实践说明 |
+| `docs/性能与数据分析说明.md` | 性能与数据分析说明 |
+| `docs/数据库执行计划检查清单.md` | SQL EXPLAIN 检查清单 |
+| `docs/演示手册.md` | Demo 演示手册 |
+| `docs/最终检查清单.md` | Day6 互评与终审清单 |
+| `docs/答辩演示大纲.md` | 答辩 PPT 大纲 |
+| `docs/第七天答辩手册.md` | 答辩问答手册 |
+| `docs/最终交付报告.md` | 最终交付报告 |
 
 ## 验证
 
