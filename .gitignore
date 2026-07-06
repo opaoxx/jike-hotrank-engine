@@ -38,3 +38,6 @@ docs/loadtest/results/
 ### Frontend ###
 frontend/node_modules/
 frontend/dist/
+
+### Design documents (binary) ###
+*.docx
