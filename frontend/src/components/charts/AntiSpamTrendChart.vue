@@ -6,11 +6,30 @@ const props = defineProps({ data: Object })
 const chartRef = ref(null)
 let chart = null
 
+function normalizeDailyTrend(value) {
+  if (Array.isArray(value)) {
+    return value.map(item => ({
+      date: item.date,
+      count: Number(item.count || 0)
+    }))
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.entries(value)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([date, count]) => ({
+        date,
+        count: Number(count || 0)
+      }))
+  }
+
+  return []
+}
+
 function render() {
   if (!chart || !props.data) return
 
-  const dailyTrend = props.data.dailyTrend || []
-  const byReason = props.data.byReason || []
+  const dailyTrend = normalizeDailyTrend(props.data.dailyTrend)
 
   chart.setOption({
     tooltip: { trigger: 'axis' },

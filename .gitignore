@@ -35,6 +35,8 @@ build/
 ### Load test outputs ###
 docs/loadtest/results/
 outputs/
+images/
+.playwright-cli/
 
 ### Frontend ###
 frontend/node_modules/
@@ -42,3 +44,5 @@ frontend/dist/
 
 ### Design documents (binary) ###
 *.docx
+*.ppt
+*.pptx

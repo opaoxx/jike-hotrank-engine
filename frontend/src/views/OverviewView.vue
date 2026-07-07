@@ -11,6 +11,14 @@ const store = useAppStore()
 const loading = ref(true)
 const overview = ref({})
 
+function cacheHits(stats) {
+  return stats?.hits ?? stats?.hitCount ?? 0
+}
+
+function cacheMisses(stats) {
+  return stats?.misses ?? stats?.missCount ?? 0
+}
+
 async function load() {
   loading.value = true
   try {
@@ -63,7 +71,7 @@ onMounted(load)
           <div class="value" style="color: var(--green);">
             {{ ((overview.cacheStats?.hitRate || 0) * 100).toFixed(1) }}%
           </div>
-          <div class="sub">命中 {{ overview.cacheStats?.hits || 0 }} / 未命中 {{ overview.cacheStats?.misses || 0 }}</div>
+          <div class="sub">命中 {{ cacheHits(overview.cacheStats) }} / 未命中 {{ cacheMisses(overview.cacheStats) }}</div>
         </div>
       </el-col>
     </el-row>

@@ -8,7 +8,10 @@ let chart = null
 
 function render() {
   if (!chart || !props.data) return
+
   const hitRate = ((props.data.hitRate || 0) * 100).toFixed(1)
+  const hits = props.data.hits ?? props.data.hitCount ?? 0
+  const misses = props.data.misses ?? props.data.missCount ?? 0
 
   chart.setOption({
     series: [{
@@ -43,7 +46,7 @@ function render() {
         color: '#94a3b8',
         fontSize: 13
       },
-      data: [{ value: hitRate, name: `命中 ${props.data.hits || 0} / 未命中 ${props.data.misses || 0}` }]
+      data: [{ value: hitRate, name: `\u547d\u4e2d ${hits} / \u672a\u547d\u4e2d ${misses}` }]
     }]
   })
 }
