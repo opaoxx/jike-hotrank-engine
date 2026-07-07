@@ -248,6 +248,7 @@ score = weightedInteractionScore / (publishHours + 2)^1.8
 | `docs/loadtest/benchmark.bat` | Windows 压测入口 |
 | `docs/loadtest/benchmark.sh` | Linux/macOS 压测入口 |
 | `docs/接口参考文档.md` | API 参考文档 |
+| `docs/接口测试结果报告.md` | Apifox 思路接口测试结果报告 |
 | `docs/系统架构说明.md` | 系统架构说明 |
 | `docs/数据库设计说明.md` | 数据库设计说明 |
 | `docs/热度算法对比报告.md` | Day1 热度算法对比报告 |
@@ -258,6 +259,7 @@ score = weightedInteractionScore / (publishHours + 2)^1.8
 | `docs/演示手册.md` | Demo 演示手册 |
 | `docs/最终检查清单.md` | Day6 互评与终审清单 |
 | `docs/答辩演示大纲.md` | 答辩 PPT 大纲 |
+| `docs/答辩演讲稿与项目讲解手册.md` | 面向组员的逐页答辩备稿与项目速成手册 |
 | `docs/第七天答辩手册.md` | 答辩问答手册 |
 | `docs/最终交付报告.md` | 最终交付报告 |
 
