@@ -46,3 +46,10 @@ frontend/dist/
 *.docx
 *.ppt
 *.pptx
+
+### Private defense notes ###
+docs/第七天答辩手册.md
+docs/答辩演讲稿与项目讲解手册.md
+docs/答辩演示大纲.md
+docs/后端答辩专项复习稿.md
+docs/演示手册.md
