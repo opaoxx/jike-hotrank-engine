@@ -17,7 +17,45 @@ Jike HotRank Engine 是一个基于 Spring Boot、MyBatis 和 MySQL 的内容社
 
 ## 快速开始
 
-### 1. 初始化数据库
+### 方式一：Docker Compose 一键启动
+
+适合在 WSL / Linux 中完整启动应用、MySQL 和 Redis：
+
+```bash
+cp .env.example .env
+docker compose up -d --build
+```
+
+启动后访问：
+
+- Dashboard：`http://localhost:8080`
+- 全站热榜 API：`http://localhost:8080/api/ranking/global?limit=50`
+
+查看日志与状态：
+
+```bash
+docker compose ps
+docker compose logs -f app
+```
+
+停止服务：
+
+```bash
+docker compose down
+```
+
+如需清空 MySQL / Redis 演示数据并重新初始化：
+
+```bash
+docker compose down -v
+docker compose up -d --build
+```
+
+更多 Docker 部署、WSL 代理和镜像源说明见 `docs/DOCKER_DEPLOYMENT.md`。
+
+### 方式二：本地开发启动
+
+#### 1. 初始化数据库
 
 ```bash
 mysql -u root -p --default-character-set=utf8mb4 < src/main/resources/sql/00_setup_fresh_database.sql
@@ -31,7 +69,7 @@ mysql -u root -p --default-character-set=utf8mb4 < src/main/resources/sql/01_upg
 
 更多 SQL 执行顺序见 `src/main/resources/sql/数据库脚本执行顺序说明.md`。
 
-### 2. 启动后端
+#### 2. 启动后端
 
 ```bash
 ./mvnw spring-boot:run
@@ -47,7 +85,7 @@ spring.datasource.password: root
 
 启动后 API 地址：`http://localhost:8080`
 
-### 3. 构建前端
+#### 3. 构建前端
 
 ```bash
 cd frontend
@@ -66,7 +104,7 @@ npm run dev
 
 访问 `http://localhost:5173`，API 请求自动代理到 `:8080`。
 
-### 4. Redis（可选，用于对比压测）
+#### 4. Redis（可选，用于对比压测）
 
 项目同时实现了 MySQL 窗口函数排名和 Redis ZSet 排名两套方案，可在压测时直接对比 QPS 和延迟。
 
