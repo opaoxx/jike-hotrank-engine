@@ -4,6 +4,8 @@ CREATE DATABASE IF NOT EXISTS jike_hotrank
 
 USE jike_hotrank;
 
+SET NAMES utf8mb4;
+
 DROP TABLE IF EXISTS circle;
 CREATE TABLE circle (
     id              BIGINT       PRIMARY KEY AUTO_INCREMENT COMMENT 'circle id',

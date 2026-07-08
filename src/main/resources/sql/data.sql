@@ -5,6 +5,8 @@
 
 USE jike_hotrank;
 
+SET NAMES utf8mb4;
+
 SET FOREIGN_KEY_CHECKS = 0;
 DELETE FROM topic_score_snapshot;
 DELETE FROM user_circle_preference;
