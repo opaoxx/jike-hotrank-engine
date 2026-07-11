@@ -109,17 +109,19 @@ npm run dev
 项目同时实现了 MySQL 窗口函数排名和 Redis ZSet 排名两套方案，可在压测时直接对比 QPS 和延迟。
 
 ```bash
-# WSL 或 Linux 中启动 Redis
-sudo service redis-server start
-redis-cli ping  # 返回 PONG 即正常
+# WSL 或 Linux 中启用 Redis 开机启动并立即运行
+sudo systemctl enable --now redis-server
+redis-cli --user root --pass root ping  # 返回 PONG 即正常
 ```
 
-Redis 默认连接 `localhost:6379`，在 `application.yml` 中配置：
+Redis 默认连接 `localhost:6379`，本地 profile 会使用 `root/root` 认证：
 
 ```yaml
 spring.data.redis:
   host: localhost
   port: 6379
+  username: root
+  password: root
   timeout: 3000ms
 ```
 
